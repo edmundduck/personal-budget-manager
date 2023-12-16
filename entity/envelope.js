@@ -1,6 +1,9 @@
 class Envelope {
     constructor(obj) {
         try {
+            if (obj instanceof Array) {
+                obj = obj[0];
+            }
             this.id = obj.id;
             this.name = obj.name;
             this.budget = obj.budget;
