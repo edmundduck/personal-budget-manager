@@ -1,15 +1,10 @@
-class Envelope {
+const dataobject = require('./dataobject.js');
+
+class Envelope extends dataobject {
     constructor(obj) {
-        try {
-            if (obj instanceof Array) {
-                obj = obj[0];
-            }
-            this.id = obj.id;
-            this.name = obj.name;
-            this.budget = obj.budget;
-        } catch (e) {
-            throw new Error('Error occurs when assigning attributes from the object.');
-        }
+        super(obj);
+        this.name = obj.name;
+        this.budget = obj.budget;
     }
 
     isValid() {
@@ -34,20 +29,12 @@ class Envelope {
         return true;
     }
 
-    setId(id) {
-        this.id = id;
-    }
-
     setName(name) {
         this.name = name;
     }
 
     setBudget(budget) {
         this.budget = budget;
-    }
-
-    getId() {
-        return this.id;
     }
 
     getName() {

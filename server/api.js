@@ -7,10 +7,13 @@ if (parameters[2] == 'fakedb') {
 } else {
     db = require('./postgresdb.js');
 }
+const envelope = require('../entity/envelope.js');
 const baseRouter = express.Router();
 const envelopeRouter = express.Router();
+const transactionRouter = express.Router();
 
 baseRouter.use('/envelopes', envelopeRouter);
+baseRouter.use('/transactions', transactionRouter);
 
 envelopeRouter.use('/:envelopeId', (req, res, next) => {
     const id = req.params.envelopeId;
@@ -22,7 +25,7 @@ envelopeRouter.use('/:envelopeId', (req, res, next) => {
             res.status(400).send();
         }
     } else {
-        res.status(404).send();
+        res.status(404).send('Envelope ID was not found.');
     }
 });
 
@@ -31,15 +34,17 @@ const responseHandler = (req, res, next) => {
     if (result instanceof Promise) {
         result.then((resolve, reject) => {
             if (reject) {
-                res.status(500).send(reject);
+                res.status(500).send('Error database processing. The change may not have been effective in the database.');
             } else {
                 res.status(req.code_success).send(resolve);
             }
+        }).catch((error) => {
+            res.status(500).send(error.message);
         });
     } else if (result) {
         res.status(200).send(result);
     } else {
-        res.status(404).send();
+        res.status(404).send('No result was returned.');
     }
 }
 
@@ -65,47 +70,47 @@ envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
             req.toId = parseInt(toId);
             req.budget = parseFloat(budget);
             next();
-        } catch (e) {
-            res.status(400).send();
+        } catch (err) {
+            res.status(500).send(err.message);
         }
     } else {
-        res.status(404).send();
+        res.status(400).send('Not all mandatory parameters are included in the transfer request.');
     }
 });
 
 envelopeRouter.get('/', (req, res, next) => {
-    req.result = db.getAllRecordsFromDatabase();
+    req.result = db.getDatabaseRecords(null, db.selectAllEnvelopesQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
 envelopeRouter.get('/:envelopeId', (req, res, next) => {
-    req.result = db.getOneRecordFromDatabase(req.envelopeId);
+    req.result = db.getDatabaseRecords(req.envelopeId, db.selectOneEnvelopeQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
 envelopeRouter.post('/', (req, res, next) => {
-    const envelopeObj = {
+    const envelopeObj = new envelope ({
         name: req.query.name,
         budget: req.query.budget
-    }
-    req.result = db.createNewDatabaseRecord(envelopeObj);
+    });
+    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery);
     req.code_success = 201;
     next();
 }, responseHandler);
 
 envelopeRouter.post('/transfer/:from/:to', (req, res, next) => {
-    req.resultOne = db.getOneRecordFromDatabase(req.fromId);
-    req.resultTwo = db.getOneRecordFromDatabase(req.toId);
+    req.resultOne = db.getDatabaseRecords(req.fromId, db.selectOneEnvelopeQuery);
+    req.resultTwo = db.getDatabaseRecords(req.toId, db.selectOneEnvelopeQuery);
     next();
 }, twoPromisesLoader, (req, res, next) => {
-    const fromEnvelope = req.resultOne;
-    const toEnvelope = req.resultTwo;
+    const fromEnvelope = new envelope(req.resultOne);
+    const toEnvelope = new envelope(req.resultTwo);
     fromEnvelope.budget = parseFloat(fromEnvelope.budget) - parseFloat(req.budget);
     toEnvelope.budget = parseFloat(toEnvelope.budget) + parseFloat(req.budget);
-    req.resultOne = db.updateDatabaseRecordById(fromEnvelope);
-    req.resultTwo = db.updateDatabaseRecordById(toEnvelope);
+    req.resultOne = db.createUpdateDatabaseRecord(fromEnvelope, db.updateEnvelopeQuery);
+    req.resultTwo = db.createUpdateDatabaseRecord(toEnvelope, db.updateEnvelopeQuery);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     if (req.resultOne && req.resultTwo) {
@@ -120,23 +125,23 @@ envelopeRouter.post('/transfer/:from/:to', (req, res, next) => {
         req.code_success = 201;
         next();
     } else {
-        res.status(500).send();
+        res.status(500).send('Fail to get the transfer result successfully from the database.');
     }
 }, responseHandler);
 
 envelopeRouter.put('/:envelopeId', (req, res, next) => {
-    const envelopeObj = {
+    const envelopeObj = new envelope({
         id: req.envelopeId,
         name: req.query.name,
         budget: req.query.budget
-    }
-    req.result = db.updateDatabaseRecordById(envelopeObj);
+    });
+    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery);
     req.code_success = 201;
     next();
 }, responseHandler);
 
 envelopeRouter.delete('/:envelopeId', (req, res, next) => {
-    req.result = db.deleteDatabaseRecordById(req.envelopeId);
+    req.result = db.deleteDatabaseRecord(req.envelopeId, db.deleteOneEnvelopeQuery);
     req.code_success = 201;
     next();
 }, responseHandler);
