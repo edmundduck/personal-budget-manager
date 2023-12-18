@@ -15,8 +15,10 @@ class Envelope extends dataobject {
                 throw new Error('Id should be in numeric value.', { cause: 'id' });
             }
         }
-        if (typeof(this.name) != "string") {
-            throw new Error('Name should be in string.', { cause: 'name' });
+        if (this.name) {
+            if (typeof(this.name) != "string") {
+                throw new Error('Name should be in string.', { cause: 'name' });
+            }
         }
         if (!isNaN(parseFloat(this.budget))) {
             this.budget = Number(this.budget);
@@ -43,15 +45,6 @@ class Envelope extends dataobject {
 
     getBudget() {
         return this.budget;
-    }
-
-    getObject() {
-        let obj = {
-            id: this.id,
-            name: this.name,
-            budget: this.budget
-        }
-        return obj;
     }
 }
 

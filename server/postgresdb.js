@@ -54,7 +54,7 @@ const getDatabaseRecords = async (id, sqlFunc) => {
     }
 }
 
-const createUpdateDatabaseRecord = async (obj, sqlFunc) => {
+const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
     if (!obj || !(obj instanceof dataobject)) {
         throw new Error('Not valid value or data type (Data Object) for creating or updating record in database.');
     }
@@ -64,8 +64,12 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc) => {
                 dbConnect();
             }
             if (!obj.getId()) {
-                const newId = await getNewId();
-                obj.setId(newId + 1);
+                const newId = await getDatabaseRecords(null, findIdFunc);
+                if (newId) {
+                    obj.setId(newId.id + 1);
+                } else {
+                    obj.setId(1);
+                }
             }
             await connection.query(sqlFunc(obj));
             await connection.query('COMMIT');
@@ -95,41 +99,45 @@ const deleteDatabaseRecord = async (id, sqlFunc) => {
     }
 }
 
-const getNewId = async () => {
-    try {
-        if (!connection) {
-            dbConnect();
+const constructUpdateQueryById = (obj, table) => {
+    let sqlString = 'UPDATE ' + table + ' SET  ';
+    let counter = 2;
+    Object.entries(obj).forEach(([k, v]) => {
+        if (k.toLowerCase() != 'id' && v) {
+            // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
+            sqlString = sqlString + '"' + k + '" = $' + counter + ', ';
+            counter++;
         }
-        const data = await connection.query('SELECT id FROM app.envelopes ORDER BY id DESC LIMIT 1');
-        if (data.rows) {
-            return data.rows[0].id;
-        } else {
-            return 0;
-        }
-    } catch (err) {
-        console.log('Fail to get ID from DB ...');
-        console.error(err);
-    }
-}
+    });
+    sqlString = sqlString.replace(/,\s*$/, ' ') + ' WHERE id = $1';
+    return sqlString;
+};
 
 const selectAllEnvelopesQuery = () => {
     return {
-        name: 'select-all-envelopes',
+        // name: 'select-all-envelopes',
         text: 'SELECT * FROM app.envelopes ORDER BY id'
     };
 };
 
 const selectOneEnvelopeQuery = (id) => {
     return {
-        name: 'select-one-envelope-by-id',
-        text: 'SELECT * FROM app.envelopes WHERE id = $1 ORDER BY id',
+        // name: 'select-one-envelope-by-id',
+        text: 'SELECT * FROM app.envelopes WHERE id = $1',
         values: [id]
+    };
+};
+
+const selectLastEnvelopeIdQuery = () => {
+    return {
+        // name: 'select-last-envelope-id',
+        text: 'SELECT id FROM app.envelopes ORDER BY id DESC LIMIT 1',
     };
 };
 
 const createEnvelopeQuery = (obj) => {
     return {
-        name: 'create-envelope',
+        // name: 'create-envelope',
         text: 'INSERT INTO app.envelopes (id, name, budget) VALUES ($1, $2, $3)', 
         values: [obj.getId(), obj.getName(), obj.getBudget()]
     };
@@ -137,15 +145,15 @@ const createEnvelopeQuery = (obj) => {
 
 const updateEnvelopeQuery = (obj) => {
     return {
-        name: 'update-envelope',
-        text: 'UPDATE app.envelopes SET name = $2, budget = $3 WHERE id = $1', 
-        values: [obj.getId(), obj.getName(), obj.getBudget()]
+        // name: 'update-envelope',
+        text: constructUpdateQueryById(obj, 'app.envelopes'), 
+        values: Object.entries(obj).map(([k, v]) => v).filter(v => v)
     };
 };
 
 const deleteOneEnvelopeQuery = (id) => {
     return {
-        name: 'delete-one-envelope-by-id',
+        // name: 'delete-one-envelope-by-id',
         text: 'DELETE FROM app.envelopes WHERE id = $1 RETURNING id',
         values: [id]
     };
@@ -153,38 +161,46 @@ const deleteOneEnvelopeQuery = (id) => {
 
 const selectAllTransactionsQuery = () => {
     return {
-        name: 'select-all-transactions',
+        // name: 'select-all-transactions',
         text: 'SELECT * FROM app.transactions ORDER BY id'
     };
 };
 
 const selectOneTransactionQuery = (id) => {
     return {
-        name: 'select-one-transaction-by-id',
-        text: 'SELECT * FROM app.transactions WHERE id = $1 ORDER BY id',
+        // name: 'select-one-transaction-by-id',
+        text: 'SELECT * FROM app.transactions WHERE id = $1',
         values: [id]
     };
 };
 
-const createTransactionQuery = (obj) => {
+const selectLastTransactionIdQuery = () => {
     return {
-        name: 'create-transaction',
-        text: 'INSERT INTO app.transactions (id, name, budget) VALUES ($1, $2, $3)', 
-        values: [obj.getId(), obj.getName(), obj.getBudget()]
+        // name: 'select-last-transaction-id',
+        text: 'SELECT id FROM app.transactions ORDER BY id DESC LIMIT 1',
+    };
+};
+
+const createTransactionQuery = (obj) => {
+    // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
+    return {
+        // name: 'create-transaction',
+        text: 'INSERT INTO app.transactions (id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5)', 
+        values: [obj.getId(), obj.getDate(), obj.getAmount(), obj.getRecipient(), obj.getEnvelopeId()]
     };
 };
 
 const updateTransactionQuery = (obj) => {
     return {
-        name: 'update-transaction',
-        text: 'UPDATE app.transactions SET name = $2, budget = $3 WHERE id = $1', 
-        values: [obj.getId(), obj.getName(), obj.getBudget()]
+        // name: 'update-transaction',
+        text: constructUpdateQueryById(obj, 'app.transactions'), 
+        values: Object.entries(obj).map(([k, v]) => v).filter(v => v)
     };
 };
 
 const deleteOneTransactionQuery = (id) => {
     return {
-        name: 'delete-one-transaction-by-id',
+        // name: 'delete-one-transaction-by-id',
         text: 'DELETE FROM app.transactions WHERE id = $1 RETURNING id',
         values: [id]
     };
@@ -196,7 +212,14 @@ module.exports = {
     deleteDatabaseRecord,
     selectAllEnvelopesQuery, 
     selectOneEnvelopeQuery, 
+    selectLastEnvelopeIdQuery,
     createEnvelopeQuery, 
     updateEnvelopeQuery, 
-    deleteOneEnvelopeQuery
+    deleteOneEnvelopeQuery,
+    selectAllTransactionsQuery,
+    selectOneTransactionQuery,
+    selectLastTransactionIdQuery,
+    createTransactionQuery,
+    updateTransactionQuery,
+    deleteOneTransactionQuery
 };

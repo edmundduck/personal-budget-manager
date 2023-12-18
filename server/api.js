@@ -8,26 +8,13 @@ if (parameters[2] == 'fakedb') {
     db = require('./postgresdb.js');
 }
 const envelope = require('../entity/envelope.js');
+const transaction = require('../entity/transaction.js');
 const baseRouter = express.Router();
 const envelopeRouter = express.Router();
 const transactionRouter = express.Router();
 
 baseRouter.use('/envelopes', envelopeRouter);
 baseRouter.use('/transactions', transactionRouter);
-
-envelopeRouter.use('/:envelopeId', (req, res, next) => {
-    const id = req.params.envelopeId;
-    if (id) {
-        try {
-            req.envelopeId = parseInt(id);
-            next();
-        } catch (e) {
-            res.status(400).send();
-        }
-    } else {
-        res.status(404).send('Envelope ID was not found.');
-    }
-});
 
 const responseHandler = (req, res, next) => {
     const result = req.result;
@@ -48,17 +35,38 @@ const responseHandler = (req, res, next) => {
     }
 }
 
+const promiseLoader = async (req, res, next) => {
+    const result = req.result;
+    await result.then((res) => {
+        req.result = res;
+    });
+    next();
+}
+
 const twoPromisesLoader = async (req, res, next) => {
     const resultOne = req.resultOne;
     const resultTwo = req.resultTwo;
-    if (resultOne instanceof Promise && resultTwo instanceof Promise) {
-        await Promise.all([resultOne, resultTwo]).then((res) => {
-            req.resultOne = res[0];
-            req.resultTwo = res[1];
-        });
-    }
+    await Promise.all([resultOne, resultTwo]).then((res) => {
+        req.resultOne = res[0];
+        req.resultTwo = res[1];
+    });
     next();
 }
+
+// Envelope API
+envelopeRouter.use('/:envelopeId', (req, res, next) => {
+    const id = req.params.envelopeId;
+    if (id) {
+        try {
+            req.envelopeId = parseInt(id);
+            next();
+        } catch (err) {
+            res.status(400).send(err.message);
+        }
+    } else {
+        res.status(404).send('Envelope ID was not found.');
+    }
+});
 
 envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
     const fromId = req.params.from;
@@ -95,7 +103,7 @@ envelopeRouter.post('/', (req, res, next) => {
         name: req.query.name,
         budget: req.query.budget
     });
-    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery);
+    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery, db.selectLastEnvelopeIdQuery);
     req.code_success = 201;
     next();
 }, responseHandler);
@@ -109,8 +117,8 @@ envelopeRouter.post('/transfer/:from/:to', (req, res, next) => {
     const toEnvelope = new envelope(req.resultTwo);
     fromEnvelope.budget = parseFloat(fromEnvelope.budget) - parseFloat(req.budget);
     toEnvelope.budget = parseFloat(toEnvelope.budget) + parseFloat(req.budget);
-    req.resultOne = db.createUpdateDatabaseRecord(fromEnvelope, db.updateEnvelopeQuery);
-    req.resultTwo = db.createUpdateDatabaseRecord(toEnvelope, db.updateEnvelopeQuery);
+    req.resultOne = db.createUpdateDatabaseRecord(fromEnvelope, db.updateEnvelopeQuery, null);
+    req.resultTwo = db.createUpdateDatabaseRecord(toEnvelope, db.updateEnvelopeQuery, null);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     if (req.resultOne && req.resultTwo) {
@@ -135,7 +143,7 @@ envelopeRouter.put('/:envelopeId', (req, res, next) => {
         name: req.query.name,
         budget: req.query.budget
     });
-    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery);
+    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
     req.code_success = 201;
     next();
 }, responseHandler);
@@ -144,6 +152,150 @@ envelopeRouter.delete('/:envelopeId', (req, res, next) => {
     req.result = db.deleteDatabaseRecord(req.envelopeId, db.deleteOneEnvelopeQuery);
     req.code_success = 201;
     next();
+}, responseHandler);
+
+
+// Transaction API
+transactionRouter.use('/:transactionId', (req, res, next) => {
+    const id = req.params.transactionId;
+    if (id) {
+        try {
+            req.transactionId = parseInt(id);
+            next();
+        } catch (err) {
+            res.status(400).send(err.message);
+        }
+    } else {
+        res.status(404).send('Transaction ID was not found.');
+    }
+});
+
+transactionRouter.get('/', (req, res, next) => {
+    req.result = db.getDatabaseRecords(null, db.selectAllTransactionsQuery);
+    req.code_success = 200;
+    next();
+}, responseHandler);
+
+transactionRouter.get('/:transactionId', (req, res, next) => {
+    req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
+    req.code_success = 200;
+    next();
+}, responseHandler);
+
+transactionRouter.post('/', (req, res, next) => {
+    // Check if the envelope balance is larger than the transaction amount
+    req.result = db.getDatabaseRecords(req.query.envelopeId, db.selectOneEnvelopeQuery);
+    next();
+}, promiseLoader, (req, res, next) => {
+    const envelopeObj = new envelope(req.result);
+    const transactionObj = new transaction({
+        date: req.query.date,
+        amount: req.query.amount,
+        recipient: req.query.recipient,
+        envelopeId: req.query.envelopeId
+    });
+    if (envelopeObj.budget >= transactionObj.amount) {
+        envelopeObj.setBudget(envelopeObj.getBudget() - transactionObj.getAmount());
+        req.resultOne = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
+        req.resultTwo = db.createUpdateDatabaseRecord(transactionObj, db.createTransactionQuery, db.selectLastTransactionIdQuery);
+        next();
+    } else {
+        res.status(501).send('Not enough budget from the envelope to fulfill this transaction.');
+    }
+}, twoPromisesLoader, (req, res, next) => {
+    if (req.resultOne && req.resultTwo) {
+        const envelopeResult = req.resultOne;
+        const transactionResult = req.resultTwo;
+        req.result = {
+            id: transactionResult.id,
+            date: transactionResult.date,
+            amount: transactionResult.amount,
+            recipient: transactionResult.recipient,
+            envelopeId: envelopeResult.id,
+            envelopeBudgetAfter: envelopeResult.budget,
+        }
+        req.code_success = 201;
+        next();
+    } else {
+        res.status(500).send('Fail to get the result successfully from the database.');
+    }
+}, responseHandler);
+
+transactionRouter.put('/:transactionId', (req, res, next) => {
+    req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
+    next();
+}, promiseLoader, (req, res, next) => {
+    const transactionObj = new transaction(req.result);
+    req.resultTwo = req.result;
+    req.resultOne = db.getDatabaseRecords(transactionObj.getEnvelopeId(), db.selectOneEnvelopeQuery);
+    next();
+}, twoPromisesLoader, (req, res, next) => {
+    const envelopeObj = new envelope(req.resultOne);
+    const originalTransactionObj = new transaction(req.resultTwo);
+    const transactionObj = new transaction({
+        id: req.transactionId, 
+        date: req.query.date,
+        amount: req.query.amount,
+        recipient: req.query.recipient,
+        envelopeId: req.query.envelopeId
+    });
+    const diffAmount = transactionObj.getAmount() - originalTransactionObj.getAmount();
+    if (envelopeObj.budget >= diffAmount) {
+        envelopeObj.setBudget(envelopeObj.getBudget() - diffAmount);
+        req.resultOne = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
+        req.resultTwo = db.createUpdateDatabaseRecord(transactionObj, db.updateTransactionQuery, null);
+        next();
+    } else {
+        res.status(501).send('Not enough budget from the envelope to fulfill this transaction.');
+    }
+}, twoPromisesLoader, (req, res, next) => {
+    if (req.resultOne && req.resultTwo) {
+        const envelopeResult = req.resultOne;
+        const transactionResult = req.resultTwo;
+        req.result = {
+            id: transactionResult.id,
+            date: transactionResult.date,
+            amount: transactionResult.amount,
+            recipient: transactionResult.recipient,
+            envelopeId: envelopeResult.id,
+            envelopeBudgetAfter: envelopeResult.budget
+        }
+        req.code_success = 201;
+        next();
+    } else {
+        res.status(500).send('Fail to get the result successfully from the database.');
+    }
+}, responseHandler);
+
+transactionRouter.delete('/:transactionId', (req, res, next) => {
+    req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
+    next();
+}, promiseLoader, (req, res, next) => {
+    const transactionObj = new transaction(req.result);
+    req.resultOne = req.result;
+    req.resultTwo = db.getDatabaseRecords(transactionObj.getEnvelopeId(), db.selectOneEnvelopeQuery);
+    next();
+}, twoPromisesLoader, (req, res, next) => {
+    const transactionObj = new transaction(req.resultOne);
+    const envelopeObj = new envelope(req.resultTwo);
+    envelopeObj.setBudget(envelopeObj.getBudget() + transactionObj.getAmount());
+    req.resultOne = db.deleteDatabaseRecord(req.transactionId, db.deleteOneTransactionQuery);
+    req.resultTwo = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
+    next();
+}, twoPromisesLoader, (req, res, next) => {
+    if (req.resultOne && req.resultTwo) {
+        const transactionResult = req.resultOne;
+        const envelopeResult = req.resultTwo;
+        req.result = {
+            id: transactionResult.id,
+            envelopeId: envelopeResult.id,
+            envelopeBudgetAfter: envelopeResult.budget
+        }
+        req.code_success = 201;
+        next();
+    } else {
+        res.status(500).send('Fail to get the result successfully from the database.');
+    }
 }, responseHandler);
 
 module.exports = baseRouter;

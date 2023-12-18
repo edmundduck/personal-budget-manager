@@ -24,9 +24,8 @@ class DataObject {
     }
 
     getObject() {
-        let obj = {
-            id: this.id,
-        }
+        let obj = {};
+        Object.keys(this).forEach(k => obj[k] = this[k]);
         return obj;
     }
 }
