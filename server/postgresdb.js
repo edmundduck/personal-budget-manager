@@ -44,7 +44,7 @@ const getDatabaseRecords = async (id, sqlFunc) => {
         }
         const data = await connection.query(sqlFunc(id));
         if (data.rows.length == 1) {
-            return data.rows[0];
+            return [data.rows[0]];
         } else if (data.rows.length > 1) {
             return data.rows;
         }
@@ -63,17 +63,17 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
             if (!connection) {
                 dbConnect();
             }
-            if (!obj.getId()) {
+            if (!obj.getId() && findIdFunc) {
                 const newId = await getDatabaseRecords(null, findIdFunc);
-                if (newId) {
-                    obj.setId(newId.id + 1);
+                if (newId && newId.length > 0) {
+                    obj.setId(newId[0].id + 1);
                 } else {
                     obj.setId(1);
                 }
             }
             await connection.query(sqlFunc(obj));
             await connection.query('COMMIT');
-            return obj.getObject();
+            return [obj.getObject()];
         } catch (err) {
             await connection.query('ROLLBACK');
             console.log('Fail to create or update record in DB ... Rollback initiated ...');
@@ -91,7 +91,7 @@ const deleteDatabaseRecord = async (id, sqlFunc) => {
         }
         const data = await connection.query(sqlFunc(id));
         await connection.query('COMMIT');
-        return data.rows[0];
+        return [data.rows[0]];
     } catch (err) {
         await connection.query('ROLLBACK');
         console.log('Fail to delete records from DB ... Rollback initiated ...');
@@ -206,6 +206,22 @@ const deleteOneTransactionQuery = (id) => {
     };
 };
 
+const selectOneUserQuery = (email) => {
+    return {
+        // name: 'select-one-user-by-email',
+        text: 'SELECT * FROM app.usersauth WHERE email = $1',
+        values: [email]
+    };
+};
+
+const createUserQuery = (obj) => {
+    return {
+        // name: 'create-user',
+        text: 'INSERT INTO app.usersauth (name, email, hash) VALUES ($1, $2, $3)', 
+        values: [obj.getName(), obj.getEmail(), obj.getPasswordHash()]
+    };
+};
+
 module.exports = { 
     getDatabaseRecords, 
     createUpdateDatabaseRecord, 
@@ -221,5 +237,7 @@ module.exports = {
     selectLastTransactionIdQuery,
     createTransactionQuery,
     updateTransactionQuery,
-    deleteOneTransactionQuery
+    deleteOneTransactionQuery,
+    selectOneUserQuery,
+    createUserQuery
 };

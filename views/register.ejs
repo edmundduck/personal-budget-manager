@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <%- include('./common/header.ejs'); %>
+    </head>
+    <body>
+        <form action="/login/new-user" method="POST">
+            <div class="center-align login_form">
+                <table>
+                    <caption><h1>Registration</h1></caption>
+                    <tr>
+                        <td colspan="2" class="error_msg">
+                            <%- include('./common/error.ejs'); %>
+                            <!--
+                            <ul>
+                                <% if (error_msg) {
+                                    error_msg.forEach((err) => { %>
+                                        <li><%= err %></li>
+                                <%  });
+                                }; %>
+                            </ul>
+                            -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="cell_label">Full Name</td>
+                        <td><input type="text" name="fullname" placeholder="Your full name" required/></td>
+                    </tr>
+                    <tr>
+                        <td class="cell_label">Email Address</td>
+                        <td><input type="text" name="username" placeholder="Email" required/></td>
+                    </tr>
+                    <tr>
+                        <td class="cell_label">Password</td>
+                        <td><input type="password" name="password" placeholder="Password" required/></td>
+                    </tr>
+                    <tr>
+                        <td class="cell_label">Confirm Password</td>
+                        <td><input type="password" name="passwordconfirm" placeholder="Confirm password" required/></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><input type="submit" value="Submit" /></td>
+                    </tr>
+                </table>
+            </div>    
+        </form>
+    </body>
+</html>

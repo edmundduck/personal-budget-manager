@@ -1,0 +1,11 @@
+<ul>
+    <%
+        if (error_msg) {
+            error_msg.forEach((err) => {
+    %>
+            <li><%= err %></li>
+    <%
+            });
+        };
+    %>
+</ul>

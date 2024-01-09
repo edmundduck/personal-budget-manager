@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <%- include('./common/header.ejs'); %>
+        <script>
+            function updateActionId() {
+                const envelopeIDActionURL = document.getElementsByClassName('envelope_id');  
+                const envelopeId = document.getElementById('input_id').value;
+                Array.from(envelopeIDActionURL).forEach(element => {
+                    let splittedURL = element.formAction.split('?', 2);
+                    splittedURL.splice(1, 0, envelopeId, '?');
+                    element.formAction = splittedURL.join('');
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Personal Budget Management System</h1>
+        <%- include('./common/nav.ejs'); %>
+        <div class="error_msg">
+            <%- include('./common/error.ejs'); %>
+        </div>
+        <div class="center-align flexi_container">
+            <div class="flexi_item">
+                <button type="submit" form="envelope_form" formaction="/budget/envelopes/" formmethod="GET">List all envelopes</button>
+                <button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/" formmethod="GET">Select envelope</button>
+                <button type="submit" form="envelope_form" formaction="/budget/envelopes/" formmethod="POST">Add envelope</button>
+                <button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/?_method=PUT" formmethod="POST">Update envelope</button>
+                <button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/?_method=DELETE" formmethod="POST">Delete envelope</button>
+            </div>
+            <!--
+            <div class="flexi_item">
+                <form id="envelope_form">
+                    <input type="input" id="input_id" name="id" placeholder="ID" onchange="updateActionId();"></input>
+                    <input style="min-width: 300px" type="input" id="input_name" name="name" placeholder="Name"></input>
+                    <input type="input" id="input_budget" name="budget" placeholder="New Budget"></input>
+                </form>
+            </div>
+            -->
+            <form id="envelope_form">
+                <table>
+                    <thead>
+                        <tr>
+                            <td><input type="input" id="input_id" name="id" placeholder="ID" onchange="updateActionId();"></input></td>
+                            <td><input style="min-width: 300px" type="input" id="input_name" name="name" placeholder="Name"></input></td>
+                            <td><input type="input" id="input_budget" name="budget" placeholder="New Budget"></input></td>
+                        </tr>
+                        <tr>
+                            <td>ID</td>
+                            <td>Envelope Name</td>
+                            <td>Budget</td>
+                        </tr>
+                    </thead>
+                    <% 
+                        if (data) {
+                            data.forEach((envelope) => { 
+                    %>
+                        <tr>
+                            <td><%= envelope.id %></td>
+                            <td><%= envelope.name %></td>
+                            <td><%= envelope.budget %></td>
+                        </tr>
+                    <%
+                            });
+                        };
+                    %>
+                </table>
+            </form>    
+            <!--
+            <form id="envelope_form">
+                <table class="column_display">
+                    <tr>
+                        <td><input type="input" id="input_id" name="id" placeholder="ID" onchange="updateActionId();"></input></td>
+                    </tr>
+                    <tr>
+                        <td><input type="input" id="input_name" name="name" placeholder="Name"></input></td>
+                    </tr>
+                    <tr>
+                        <td><input type="input" id="input_budget" name="budget" placeholder="New Budget"></input></td>
+                    </tr>
+                </table>    
+            </form>
+            -->
+            <!--
+            <table class="column_display">
+                <tr>
+                    <td><button type="submit" form="envelope_form" formaction="/budget/envelopes/" formmethod="GET">List all envelopes</button></td>
+                </tr>
+                <tr>
+                    <td><button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/" formmethod="GET">Select envelope</button></td>
+                </tr>
+                <tr>
+                    <td><button type="submit" formaction="/budget/envelopes/" formmethod="POST">Add envelope</button></td>
+                </tr>
+                <tr>
+                    <td><button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/" formmethod="PUT">Update envelope</button></td>
+                </tr>
+                <tr>
+                    <td><button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/" formmethod="DELETE">Delete envelope</button></td>
+                </tr>
+            </table>
+            -->
+        </div>
+    </body>
+</html>

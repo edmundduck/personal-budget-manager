@@ -1,5 +1,6 @@
 const parameters = process.argv;
 const express = require('express');
+const methodOverride = require('method-override');
 let db;
 if (parameters[2] == 'fakedb') {
     // fake_db.js for simulation using a fake file (not a connectable db)
@@ -9,29 +10,39 @@ if (parameters[2] == 'fakedb') {
 }
 const envelope = require('../entity/envelope.js');
 const transaction = require('../entity/transaction.js');
+const auth = require('./authenticate.js');
 const baseRouter = express.Router();
 const envelopeRouter = express.Router();
 const transactionRouter = express.Router();
 
+baseRouter.use(express.static('html'));
+baseRouter.use(express.static('public'));
+// override with POST having ?_method=DELETE
+baseRouter.use(methodOverride('_method'));
 baseRouter.use('/envelopes', envelopeRouter);
 baseRouter.use('/transactions', transactionRouter);
 
 const responseHandler = (req, res, next) => {
     const result = req.result;
+    const page = req.page;
     if (result instanceof Promise) {
         result.then((resolve, reject) => {
             if (reject) {
                 res.status(500).send('Error database processing. The change may not have been effective in the database.');
             } else {
-                res.status(req.code_success).send(resolve);
+                // res.status(req.code_success).send(resolve);
+                res.render(page, { data: resolve, error_msg: null });
             }
         }).catch((error) => {
-            res.status(500).send(error.message);
+            // res.status(500).send(error.message);
+            res.render(page, { data: null, error_msg: [error.message] });
         });
     } else if (result) {
-        res.status(200).send(result);
+        // res.status(200).send(result);
+        res.render(page, { data: result, error_msg: null });
     } else {
-        res.status(404).send('No result was returned.');
+        // res.status(404).send('No result was returned.');
+        res.render(page, { data: null, error_msg: ['No result was returned.'] });
     }
 }
 
@@ -54,6 +65,12 @@ const twoPromisesLoader = async (req, res, next) => {
 }
 
 // Envelope API
+envelopeRouter.use(['/', '/:envelopeId', '/transfer/:from/:to'], (req, res, next) => {
+    req.page = 'envelopes';
+    res.locals.session = req.session;
+    next();
+});
+
 envelopeRouter.use('/:envelopeId', (req, res, next) => {
     const id = req.params.envelopeId;
     if (id) {
@@ -86,29 +103,33 @@ envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
     }
 });
 
-envelopeRouter.get('/', (req, res, next) => {
+baseRouter.get('/', auth.checkAuthenticated, (req, res, next) => {
+    res.render('main', { error_msg: null });
+});
+
+envelopeRouter.get('/', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(null, db.selectAllEnvelopesQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
-envelopeRouter.get('/:envelopeId', (req, res, next) => {
+envelopeRouter.get('/:envelopeId', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(req.envelopeId, db.selectOneEnvelopeQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
-envelopeRouter.post('/', (req, res, next) => {
+envelopeRouter.post('/', auth.checkAuthenticated, (req, res, next) => {
     const envelopeObj = new envelope ({
-        name: req.query.name,
-        budget: req.query.budget
+        name: req.body.name,
+        budget: req.body.budget
     });
     req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery, db.selectLastEnvelopeIdQuery);
     req.code_success = 201;
     next();
 }, responseHandler);
 
-envelopeRouter.post('/transfer/:from/:to', (req, res, next) => {
+envelopeRouter.post('/transfer/:from/:to', auth.checkAuthenticated, (req, res, next) => {
     req.resultOne = db.getDatabaseRecords(req.fromId, db.selectOneEnvelopeQuery);
     req.resultTwo = db.getDatabaseRecords(req.toId, db.selectOneEnvelopeQuery);
     next();
@@ -137,18 +158,18 @@ envelopeRouter.post('/transfer/:from/:to', (req, res, next) => {
     }
 }, responseHandler);
 
-envelopeRouter.put('/:envelopeId', (req, res, next) => {
+envelopeRouter.put('/:envelopeId', auth.checkAuthenticated, (req, res, next) => {
     const envelopeObj = new envelope({
         id: req.envelopeId,
-        name: req.query.name,
-        budget: req.query.budget
+        name: req.body.name,
+        budget: req.body.budget
     });
     req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
     req.code_success = 201;
     next();
 }, responseHandler);
 
-envelopeRouter.delete('/:envelopeId', (req, res, next) => {
+envelopeRouter.delete('/:envelopeId', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.deleteDatabaseRecord(req.envelopeId, db.deleteOneEnvelopeQuery);
     req.code_success = 201;
     next();
@@ -156,7 +177,7 @@ envelopeRouter.delete('/:envelopeId', (req, res, next) => {
 
 
 // Transaction API
-transactionRouter.use('/:transactionId', (req, res, next) => {
+transactionRouter.use('/:transactionId', auth.checkAuthenticated, (req, res, next) => {
     const id = req.params.transactionId;
     if (id) {
         try {
@@ -170,19 +191,19 @@ transactionRouter.use('/:transactionId', (req, res, next) => {
     }
 });
 
-transactionRouter.get('/', (req, res, next) => {
+transactionRouter.get('/', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(null, db.selectAllTransactionsQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
-transactionRouter.get('/:transactionId', (req, res, next) => {
+transactionRouter.get('/:transactionId', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
-transactionRouter.post('/', (req, res, next) => {
+transactionRouter.post('/', auth.checkAuthenticated, (req, res, next) => {
     // Check if the envelope balance is larger than the transaction amount
     req.result = db.getDatabaseRecords(req.query.envelopeId, db.selectOneEnvelopeQuery);
     next();
@@ -221,7 +242,7 @@ transactionRouter.post('/', (req, res, next) => {
     }
 }, responseHandler);
 
-transactionRouter.put('/:transactionId', (req, res, next) => {
+transactionRouter.put('/:transactionId', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
     next();
 }, promiseLoader, (req, res, next) => {
@@ -267,7 +288,7 @@ transactionRouter.put('/:transactionId', (req, res, next) => {
     }
 }, responseHandler);
 
-transactionRouter.delete('/:transactionId', (req, res, next) => {
+transactionRouter.delete('/:transactionId', auth.checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
     next();
 }, promiseLoader, (req, res, next) => {

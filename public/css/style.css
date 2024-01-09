@@ -1,0 +1,125 @@
+body {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+}
+
+.center-align {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+}
+
+.flexi_container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    width: 50%;
+}
+
+.flexi_item {
+    padding: 5px 5px;
+}
+
+.table_conatiner {
+    display: table;
+    width: 50%;
+}
+
+.spacer {
+    height: 50px;
+}
+  
+.login_form {
+    width: 350px;
+}
+
+.login_form input {
+    border: 1px solid gray;
+    border-radius: 1px;
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 90%;
+}
+
+.login_form input[type="submit"] {
+    border: 0;
+    background-color: gray;
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+}
+
+table {
+    border: 0px solid black;
+    margin: 5px 5px;
+}
+
+thead {
+    background-color: dimgray;
+    color: white;
+}
+
+tr {
+    border-bottom: 1px solid black;
+}
+
+td {
+    min-width: auto;
+    max-width: 400px;
+    padding: 5px 8px;
+}
+
+ul {
+    padding-left: 10px;
+}
+
+button {
+    background-color: dodgerblue;
+    border: 0;
+    border-radius: 3px;
+    color: white;
+    padding: 5px;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    text-shadow: 1px 1px 1px #000;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+table button {
+    width: 100%;
+}
+
+.cell_label {
+    text-align: right;
+    vertical-align: baseline;
+}
+
+.error_msg {
+    text-align: left;
+    color: red;
+    padding-bottom: 10px;
+}
+
+.menu_navbar {
+    display: flex;
+}
+
+.menu_item {
+    border: 0;
+    font-size: 120%;
+    margin-right: 10px;
+    padding: 10px;
+    text-decoration: none;
+}
+
+.menu_item:hover {
+    background-color: lightgrey;
+}
+
+.column_display {
+    padding: 5px;
+    margin-right: 50px;
+}
