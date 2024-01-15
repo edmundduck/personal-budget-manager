@@ -3,9 +3,9 @@ const express = require('express');
 let db;
 if (parameters[2] == 'fakedb') {
     // fake_db.js for simulation using a fake file (not a connectable db)
-    db = require('./fake_db.js');
+    db = require('../fake_db.js');
 } else {
-    db = require('./postgresdb.js');
+    db = require('../postgresdb.js');
 }
 // const session = require("express-session");
 // const store = new session.MemoryStore();
@@ -13,7 +13,7 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const authRouter = express.Router();
-const user = require('../entity/user.js');
+const user = require('../../entity/user.js');
 
 const printData = (req, res, next) => {
     console.log("\n==============================")
@@ -96,21 +96,22 @@ const checkAuthenticated = (req, res, next) => {
 }
 
 authRouter.get('/', (req, res, next) => {
-    res.render('login', { error_msg: null });
+    const username = req.query.username ? decodeURIComponent(req.query.username) : null;
+    res.render('login', { error_msg: null, username: username });
 });
 
-authRouter.post('/', printData, (req, res, next) => {
+authRouter.post('/', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
-            return res.render('login', { error_msg: [info.error_msg] });
+            return res.render('login', { error_msg: [info.error_msg], username: req.body.username });
         }
         if (!user) {
-            return res.render('login', { error_msg: [info.error_msg] });
+            return res.render('login', { error_msg: [info.error_msg], username: req.body.username });
         }
 
         req.logIn(user, (err) => {
             if (err) {
-                return res.render('login', { error_msg: [info.error_msg] });
+                return res.render('login', { error_msg: [info.error_msg], username: req.body.username  });
             }
             return res.redirect('../budget');
         });
