@@ -2,7 +2,7 @@
     <%
         if (error_msg) {
             if (Array.isArray(error_msg)) {
-                confirm_msg.forEach((err) => {
+                error_msg.forEach((err) => {
     %>
                     <li><%= err %></li>
     <%

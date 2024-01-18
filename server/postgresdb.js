@@ -20,8 +20,8 @@ function getConnectionDetail() {
         });
         return connectionString;
     } catch (err) {
-        console.log('Fail to retrieve DB secret from secret file ...');
-        console.error(err);
+        console.log('Error: Fail to retrieve DB secret from secret file ...');
+        throw new Error(err);
     }
 }
 
@@ -32,15 +32,15 @@ async function dbConnect() {
         await connection.connect();
         console.log('Connected to DB successfully.');
     } catch (err) {
-        console.log('Fail to connect to DB ...');
-        console.error(err);
+        console.log('Error: Fail to connect to DB ...');
+        throw new Error(err);
     }
 }
 
 const getDatabaseRecords = async (id, sqlFunc) => {
     try {
         if (!connection) {
-            dbConnect();
+            await dbConnect();
         }
         const data = await connection.query(sqlFunc(id));
         if (data.rows.length == 1) {
@@ -49,8 +49,8 @@ const getDatabaseRecords = async (id, sqlFunc) => {
             return data.rows;
         }
     } catch (err) {
-        console.log('Fail to get records from DB ...');
-        console.error(err);
+        console.log('Error: Fail to get records from DB ...');
+        throw new Error(err);
     }
 }
 
@@ -76,8 +76,8 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
             return [obj.getObject()];
         } catch (err) {
             await connection.query('ROLLBACK');
-            console.log('Fail to create or update record in DB ... Rollback initiated ...');
-            console.error(err);
+            console.log('Error: Fail to create or update record in DB ... Rollback initiated ...');
+            throw new Error(err);
         }
     } else {
         throw new Error('Validation on the data object fails, database processsing is aborted.');
@@ -94,8 +94,8 @@ const deleteDatabaseRecord = async (id, sqlFunc) => {
         return [data.rows[0]];
     } catch (err) {
         await connection.query('ROLLBACK');
-        console.log('Fail to delete records from DB ... Rollback initiated ...');
-        console.error(err);
+        console.log('Error: Fail to delete records from DB ... Rollback initiated ...');
+        throw new Error(err);
     }
 }
 

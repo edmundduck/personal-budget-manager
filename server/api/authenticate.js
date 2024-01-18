@@ -34,17 +34,18 @@ passport.use(new LocalStrategy(async (username, password, done) => {
     try{
         userResult = await db.getDatabaseRecords(username, db.selectOneUserQuery);
     } catch(err) {
-        return done(err);
+        // return done(err);
+        return done(null, false, { error_msg: 'Internal connection error, please try again later.' });
     }
 
     if (!userResult || userResult.length <= 0) {
-        console.log('User does not exist.');
+        console.log('Error: User does not exist.');
         return done(null, false, { error_msg: 'User does not exist.' });
     }
 
     const matchedHash = await bcrypt.compare(password, userResult[0].hash);
     if (!matchedHash) {
-        console.log('Password does not match.');
+        console.log('Error: Password does not match.');
         return done(null, false, { error_msg: 'Password does not match.' });
     }
 
