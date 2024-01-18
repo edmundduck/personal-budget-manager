@@ -103,7 +103,7 @@ const constructUpdateQueryById = (obj, table) => {
     let sqlString = 'UPDATE ' + table + ' SET  ';
     let counter = 2;
     Object.entries(obj).forEach(([k, v]) => {
-        if (k.toLowerCase() != 'id' && v) {
+        if (k.toLowerCase() != 'id' && obj.getDataKeys().includes(k) && v) {
             // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
             sqlString = sqlString + '"' + k + '" = $' + counter + ', ';
             counter++;
@@ -147,7 +147,7 @@ const updateEnvelopeQuery = (obj) => {
     return {
         // name: 'update-envelope',
         text: constructUpdateQueryById(obj, 'app.envelopes'), 
-        values: Object.entries(obj).map(([k, v]) => v).filter(v => v)
+        values: obj.getDataValues()
     };
 };
 
@@ -194,7 +194,7 @@ const updateTransactionQuery = (obj) => {
     return {
         // name: 'update-transaction',
         text: constructUpdateQueryById(obj, 'app.transactions'), 
-        values: Object.entries(obj).map(([k, v]) => v).filter(v => v)
+        values: obj.getDataValues()
     };
 };
 

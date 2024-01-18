@@ -44,15 +44,25 @@
                     </thead>
                     <% 
                         if (data) {
-                            data.forEach((envelope) => { 
+                            if (Array.isArray(data)) {
+                                data.forEach((envelope) => {
                     %>
-                        <tr>
-                            <td><%= envelope.id %></td>
-                            <td><%= envelope.name %></td>
-                            <td><%= envelope.budget %></td>
-                        </tr>
+                                <tr>
+                                    <td><%= envelope.id %></td>
+                                    <td><%= envelope.name %></td>
+                                    <td><%= envelope.budget %></td>
+                                </tr>
                     <%
-                            });
+                                });
+                            } else {
+                    %>
+                                <tr>
+                                    <td><%= data.id %></td>
+                                    <td><%= data.name %></td>
+                                    <td><%= data.budget %></td>
+                                </tr>
+                    <%
+                            };
                         };
                     %>
                 </table>

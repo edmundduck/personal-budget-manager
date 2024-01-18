@@ -26,10 +26,10 @@ envelopeRouter.use('/:envelopeId', (req, res, next) => {
             req.envelopeId = parseInt(id);
             next();
         } catch (err) {
-            res.status(400).send(err.message);
+            next(err);
         }
     } else {
-        res.status(404).send('Envelope ID was not found.');
+        next(new Error('Envelope ID was not found.'));
     }
 });
 
@@ -44,10 +44,10 @@ envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
             req.budget = parseFloat(budget);
             next();
         } catch (err) {
-            res.status(500).send(err.message);
+            next(err);
         }
     } else {
-        res.status(400).send('Not all mandatory parameters are included in the transfer request.');
+        next(new Error('Not all mandatory parameters are included in the transfer request.'));
     }
 });
 
@@ -102,7 +102,7 @@ envelopeRouter.post('/transfer/:from/:to', checkAuthenticated, (req, res, next) 
         req.code_success = 201;
         next();
     } else {
-        res.status(500).send('Fail to get the transfer result successfully from the database.');
+        next(new Error('Fail to get the transfer result successfully from the database.'));
     }
 }, responseHandler);
 

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <%- include('./common/header.ejs'); %>
+        <script>
+            function updateActionId() {
+                const envelopeIDActionURL = document.getElementsByClassName('transaction_id');  
+                const envelopeId = document.getElementById('input_id').value;
+                Array.from(envelopeIDActionURL).forEach(element => {
+                    let splittedURL = element.formAction.split('?', 2);
+                    splittedURL.splice(1, 0, envelopeId, '?');
+                    element.formAction = splittedURL.join('');
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Personal Budget Management System</h1>
+        <%- include('./common/nav.ejs'); %>
+        <div class="error_msg">
+            <%- include('./common/error.ejs'); %>
+        </div>
+        <div class="center-align flexi_container">
+            <div class="flexi_item">
+                <button type="submit" form="transaction_form" formaction="/budget/transactions/" formmethod="GET">List all transactions</button>
+                <button type="submit" class="transaction_id" form="transaction_form" formaction="/budget/transactions/" formmethod="GET">Select transaction</button>
+                <button type="submit" form="transaction_form" formaction="/budget/transactions/" formmethod="POST">Add transaction</button>
+                <button type="submit" class="transaction_id" form="transaction_form" formaction="/budget/transactions/?_method=PUT" formmethod="POST">Update transaction</button>
+                <button type="submit" class="transaction_id" form="transaction_form" formaction="/budget/transactions/?_method=DELETE" formmethod="POST">Delete transaction</button>
+            </div>
+            <form id="transaction_form">
+                <table>
+                    <thead>
+                        <tr>
+                            <td><input type="input" id="input_id" name="id" placeholder="ID" onchange="updateActionId();"></input></td>
+                            <td><input type="text" name="date" id="datepicker" placeholder="Pick a Date"></input></td>
+                            <td><input type="input" name="amount" placeholder="Amount"></input></td>
+                            <td><input style="min-width: 300px" type="input" name="recipient" placeholder="Recipient"></input></td>
+                            <td><input type="input" name="envelopeId" placeholder="Envelope ID"></input></td>
+                        </tr>
+                        <tr>
+                            <td>ID</td>
+                            <td>Date</td>
+                            <td>Amount</td>
+                            <td>Recipient</td>
+                            <td>Envelope ID</td>
+                        </tr>
+                    </thead>
+                    <% 
+                        if (data) {
+                            if (Array.isArray(data)) {
+                                data.forEach((transaction) => {
+                    %>
+                            <tr>
+                                <td><%= transaction.id %></td>
+                                <td><%= transaction.date ? ( typeof transaction.date == "string" ? transaction.date : transaction.date.toDateString('en-GB')) : null %></td>
+                                <td><%= transaction.amount %></td>
+                                <td><%= transaction.recipient %></td>
+                                <td><%= transaction.envelopeId %></td>
+                            </tr>
+                    <%
+                                });
+                            } else {
+                    %>
+                            <tr>
+                                <td><%= data.id %></td>
+                                <td><%= data.date ? ( typeof data.date == "string" ? data.date : data.date.toDateString('en-GB')) : null %></td>
+                                <td><%= data.amount %></td>
+                                <td><%= data.recipient %></td>
+                                <td><%= data.envelopeId %></td>
+                            </tr>
+                    <%
+                            };
+                        };
+                    %>
+                </table>
+            </form>    
+        </div>
+        <!-- <script type="module" src="../../node_modules/js-datepicker/dist/datepicker.min.js"></script> -->
+        <script src="https://unpkg.com/js-datepicker"></script>
+        <script>
+            const picker = datepicker('#datepicker');
+    
+            picker.on('onSelect', (instance, date) => {
+            console.log('Selected date:', date);
+            });
+        </script>
+    </body>
+</html>

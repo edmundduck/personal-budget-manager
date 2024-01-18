@@ -12,6 +12,7 @@ if (parameters[2] == 'fakedb') {
 const { authRouter } = require('./authenticate.js');
 const { envelopeRouter } = require('./envelopes.js');
 const transactionRouter = require('./transactions.js');
+const { errorMessageHandler, errorRenderHandler } = require('../middleware/loader.js');
 const passport = require('passport');
 const session = require("express-session");
 const store = new session.MemoryStore();
@@ -36,6 +37,9 @@ baseRouter.use(
 baseRouter.use(passport.initialize());
 baseRouter.use(passport.session());
 
+baseRouter.get('/', (req, res, next) => {
+    res.redirect('/login');
+});
 baseRouter.use('/login', authRouter);
 baseRouter.get('/budget', (req, res, next) => {
     res.locals.session = req.session;
@@ -57,6 +61,7 @@ baseRouter.get('/logout', (req, res, next) => {
         }));
     });
 });
+baseRouter.use(errorMessageHandler, errorRenderHandler);
 
 module.exports = { 
     baseRouter

@@ -2,23 +2,11 @@ const responseHandler = (req, res, next) => {
     const result = req.result;
     const page = req.page;
     if (result instanceof Promise) {
-        result.then((resolve, reject) => {
-            if (reject) {
-                res.status(500).send('Error database processing. The change may not have been effective in the database.');
-            } else {
-                // res.status(req.code_success).send(resolve);
-                res.render(page, { data: resolve, error_msg: null });
-            }
-        }).catch((error) => {
-            // res.status(500).send(error.message);
-            res.render(page, { data: null, error_msg: [error.message] });
+        result.then((resolve) => {
+            res.render(page, { data: resolve, error_msg: null });
         });
     } else if (result) {
-        // res.status(200).send(result);
         res.render(page, { data: result, error_msg: null });
-    } else {
-        // res.status(404).send('No result was returned.');
-        res.render(page, { data: null, error_msg: ['No result was returned.'] });
     }
 }
 
@@ -40,8 +28,22 @@ const twoPromisesLoader = async (req, res, next) => {
     next();
 }
 
+const errorMessageHandler = (err, req, res, next) => {
+    console.log('Error: ' + err.message);
+    next(err);
+}
+
+const errorRenderHandler = (err, req, res, next) => {
+    const page = req.page;
+    const statusCode = err.status || 500;
+    const message = err.message || "Something went wrong, please refresh the page and try again.";
+    res.status(statusCode).render(page, { data: null, error_msg: [message] });
+}
+
 module.exports = { 
     responseHandler,
     promiseLoader,
-    twoPromisesLoader
+    twoPromisesLoader,
+    errorMessageHandler,
+    errorRenderHandler
 };

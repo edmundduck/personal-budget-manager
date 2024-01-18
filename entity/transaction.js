@@ -3,6 +3,9 @@ const dataobject = require('./dataobject.js');
 class Transaction extends dataobject {
     constructor(obj) {
         super(obj);
+        if (obj instanceof Array) {
+            obj = obj[0];
+        }
         this.date = obj.date;
         this.amount = obj.amount;
         this.recipient = obj.recipient;
@@ -14,35 +17,43 @@ class Transaction extends dataobject {
             if (!isNaN(parseInt(this.id))) {
                 this.id = Number(this.id);
             } else {
-                throw new Error('Id should be in numeric value.', { cause: 'id' });
+                this.setError(new Error('Id should be in numeric value.', { cause: 'id' }));
+                return false;
             }
         }
         if (this.date) {
             if (isNaN(Date.parse(this.date))) {
-                throw new Error('Date format is not valid.', { cause: 'date' });
+                this.setError(new Error('Date format is not valid.', { cause: 'date' }));
+                return false;
             }
         }
-        if (!isNaN(parseFloat(this.amount))) {
-            this.amount = Number(this.amount);
-        } else {
-            throw new Error('Amount should be in numeric value.', { cause: 'amount' });
-        }
-        if (this.amount < 0) {
-            throw new Error('Amount should be either zero or positive.', { cause: 'amount' });
+        if (this.amount) {
+            if (!isNaN(parseFloat(this.amount))) {
+                this.amount = Number(this.amount);
+            } else {
+                this.setError(new Error('Amount should be in numeric value.', { cause: 'amount' }));
+                return false;
+            }
+            if (this.amount < 0) {
+                this.setError(new Error('Amount should be either zero or positive.', { cause: 'amount' }));
+                return false;
+            }
         }
         if (this.recipient) {
             if (typeof(this.recipient) != "string") {
-                throw new Error('Recipient should be in string.', { cause: 'recipient' });
+                this.setError(new Error('Recipient should be in string.', { cause: 'recipient' }));
+                return false;
             }
         }
         if (this.envelopeId) {
             if (!isNaN(parseInt(this.envelopeId))) {
                 this.envelopeId = Number(this.envelopeId);
             } else {
-                throw new Error('Envelope Id should be in numeric value.', { cause: 'envelopeId' });
+                this.setError(new Error('Envelope Id should be in numeric value.', { cause: 'envelopeId' }));
+                return false;
             }
         }
-    return true;
+        return true;
     }
 
     setDate(date) {

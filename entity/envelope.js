@@ -3,6 +3,9 @@ const dataobject = require('./dataobject.js');
 class Envelope extends dataobject {
     constructor(obj) {
         super(obj);
+        if (obj instanceof Array) {
+            obj = obj[0];
+        }
         this.name = obj.name;
         this.budget = obj.budget;
     }
@@ -12,21 +15,25 @@ class Envelope extends dataobject {
             if (!isNaN(parseInt(this.id))) {
                 this.id = Number(this.id);
             } else {
-                throw new Error('Id should be in numeric value.', { cause: 'id' });
+                this.setError(new Error('Id should be in numeric value.', { cause: 'id' }));
+                return false;
             }
         }
         if (this.name) {
             if (typeof(this.name) != "string") {
-                throw new Error('Name should be in string.', { cause: 'name' });
+                this.setError(new Error('Name should be in string.', { cause: 'name' }));
+                return false;
             }
         }
         if (!isNaN(parseFloat(this.budget))) {
             this.budget = Number(this.budget);
         } else {
-            throw new Error('Budget should be in numeric value.', { cause: 'budget' });
+            this.setError(new Error('Budget should be in numeric value.', { cause: 'budget' }));
+            return false;
         }
         if (this.budget < 0) {
-            throw new Error('Budget should be either zero or positive.', { cause: 'budget' });
+            this.setError(new Error('Budget should be either zero or positive.', { cause: 'budget' }));
+            return false;
         }
         return true;
     }

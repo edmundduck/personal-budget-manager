@@ -5,6 +5,7 @@ class DataObject {
                 obj = obj[0];
             }
             this.id = obj.id;
+            this.err = [];
         } catch (e) {
             throw new Error('Error occurs when assigning attributes from the object.');
         }
@@ -19,14 +20,32 @@ class DataObject {
         this.id = id;
     }
 
+    setError(err) {
+        this.err.push(err);
+    }
+
     getId() {
         return this.id;
     }
 
+    getError() {
+        return this.err;
+    }
+
     getObject() {
         let obj = {};
-        Object.keys(this).forEach(k => obj[k] = this[k]);
+        Object.keys(this).filter(k => k.toLowerCase() != 'err').forEach(k => {
+            obj[k] = this[k];
+        });
         return obj;
+    }
+
+    getDataKeys() {
+        return Object.keys(this).filter(k => k.toLowerCase() != 'err');
+    }
+
+    getDataValues() {
+        return Object.entries(this).filter(([k, v]) => k.toLowerCase() != 'err').map(([k, v]) => v);
     }
 }
 
