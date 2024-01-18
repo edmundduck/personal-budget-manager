@@ -1,12 +1,14 @@
 const responseHandler = (req, res, next) => {
     const result = req.result;
     const page = req.page;
+    const statusCode = req.code_success || 200;
+    const message = req.message && Array.isArray(req.message) ? req.message : (req.message ? [req.message] : null);
     if (result instanceof Promise) {
         result.then((resolve) => {
-            res.render(page, { data: resolve, error_msg: null });
+            res.status(statusCode).render(page, { data: resolve, confirm_msg: message, error_msg: null });
         });
     } else if (result) {
-        res.render(page, { data: result, error_msg: null });
+        res.status(statusCode).render(page, { data: result, confirm_msg: message, error_msg: null });
     }
 }
 
@@ -37,7 +39,7 @@ const errorRenderHandler = (err, req, res, next) => {
     const page = req.page;
     const statusCode = err.status || 500;
     const message = err.message || "Something went wrong, please refresh the page and try again.";
-    res.status(statusCode).render(page, { data: null, error_msg: [message] });
+    res.status(statusCode).render(page, { data: null, confirm_msg: null, error_msg: [message] });
 }
 
 module.exports = { 

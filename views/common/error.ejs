@@ -1,11 +1,17 @@
 <ul>
     <%
         if (error_msg) {
-            error_msg.forEach((err) => {
+            if (Array.isArray(error_msg)) {
+                confirm_msg.forEach((err) => {
     %>
-            <li><%= err %></li>
+                    <li><%= err %></li>
     <%
-            });
+                });
+            } else {
+    %>
+                <li><%= error_msg %></li>
+    <%
+            }
         };
     %>
 </ul>

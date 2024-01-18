@@ -1,0 +1,17 @@
+<ul>
+    <%
+        if (confirm_msg) {
+            if (Array.isArray(confirm_msg)) {
+                confirm_msg.forEach((msg) => {
+    %>
+                    <li><%= msg %></li>
+    <%
+                });
+            } else {
+    %>
+                <li><%= confirm_msg %></li>
+    <%
+            }
+        };
+    %>
+</ul>

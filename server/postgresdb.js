@@ -147,7 +147,7 @@ const updateEnvelopeQuery = (obj) => {
     return {
         // name: 'update-envelope',
         text: constructUpdateQueryById(obj, 'app.envelopes'), 
-        values: obj.getDataValues()
+        values: obj.getDataValues().filter(v => v)
     };
 };
 
@@ -194,7 +194,7 @@ const updateTransactionQuery = (obj) => {
     return {
         // name: 'update-transaction',
         text: constructUpdateQueryById(obj, 'app.transactions'), 
-        values: obj.getDataValues()
+        values: obj.getDataValues().filter(v => v)
     };
 };
 

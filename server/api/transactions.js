@@ -1,12 +1,7 @@
 const parameters = process.argv;
 const express = require('express');
-let db;
-if (parameters[2] == 'fakedb') {
-    // fake_db.js for simulation using a fake file (not a connectable db)
-    db = require('../fake_db.js');
-} else {
-    db = require('../postgresdb.js');
-}
+// fake_db.js for simulation using a fake file (not a connectable db)
+const db = parameters[2] == 'fakedb' ? require('../fake_db.js') : require('../postgresdb.js');
 const envelope = require('../../entity/envelope.js');
 const transaction = require('../../entity/transaction.js');
 const { responseHandler, promiseLoader, twoPromisesLoader } = require('../middleware/loader.js');
@@ -79,6 +74,8 @@ transactionRouter.post('/', checkAuthenticated, (req, res, next) => {
             envelopeBudgetAfter: envelopeResult.budget
         };
         req.code_success = 201;
+        req.message = [''.concat("New transaction of ID (", transactionResult.id, ") has been created.")];
+        req.message.push(''.concat("Updated budget of the \"", envelopeResult.name, "\" envelope is now ", envelopeResult.budget, "."));
         next();
     } else {
         next(new Error('Fail to get the result successfully from the database.'));
@@ -126,6 +123,8 @@ transactionRouter.put('/:transactionId', checkAuthenticated, (req, res, next) =>
             envelopeBudgetAfter: envelopeResult.budget
         };
         req.code_success = 201;
+        req.message = [''.concat("Transaction ID (", transactionResult.id, ") has been updated.")];
+        req.message.push(''.concat("Updated budget of the \"", envelopeResult.name, "\" envelope is now ", envelopeResult.budget, "."));
         next();
     } else {
         next(new Error('Fail to get the result successfully from the database.'));
@@ -157,6 +156,8 @@ transactionRouter.delete('/:transactionId', checkAuthenticated, (req, res, next)
             envelopeBudgetAfter: envelopeResult.budget
         };
         req.code_success = 201;
+        req.message = [''.concat("Transaction ID (", transactionResult.id, ") has been deleted.")];
+        req.message.push(''.concat("Budget has been returned to the \"", envelopeResult.name, "\" envelope. Updated budget is now ", envelopeResult.budget, "."));
         next();
     } else {
         next(new Error('Fail to get the result successfully from the database.'));

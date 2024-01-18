@@ -1,12 +1,7 @@
 const parameters = process.argv;
 const express = require('express');
-let db;
-if (parameters[2] == 'fakedb') {
-    // fake_db.js for simulation using a fake file (not a connectable db)
-    db = require('../fake_db.js');
-} else {
-    db = require('../postgresdb.js');
-}
+// fake_db.js for simulation using a fake file (not a connectable db)
+const db = parameters[2] == 'fakedb' ? require('../fake_db.js') : require('../postgresdb.js');
 const envelope = require('../../entity/envelope.js');
 const { responseHandler, twoPromisesLoader } = require('../middleware/loader.js');
 const { checkAuthenticated } = require('./authenticate.js');
@@ -74,6 +69,7 @@ envelopeRouter.post('/', checkAuthenticated, (req, res, next) => {
     });
     req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery, db.selectLastEnvelopeIdQuery);
     req.code_success = 201;
+    req.message = [''.concat("New envelope \"", req.body.name, "\" has been created.")];
     next();
 }, responseHandler);
 
@@ -114,12 +110,14 @@ envelopeRouter.put('/:envelopeId', checkAuthenticated, (req, res, next) => {
     });
     req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
     req.code_success = 201;
+    req.message = [''.concat("Envelope ID (", req.envelopeId, ") has been updated.")];
     next();
 }, responseHandler);
 
 envelopeRouter.delete('/:envelopeId', checkAuthenticated, (req, res, next) => {
     req.result = db.deleteDatabaseRecord(req.envelopeId, db.deleteOneEnvelopeQuery);
     req.code_success = 201;
+    req.message = [''.concat("Envelope ID (", req.envelopeId, ") has been deleted.")];
     next();
 }, responseHandler);
 

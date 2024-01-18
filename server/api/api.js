@@ -1,14 +1,6 @@
-const parameters = process.argv;
 const express = require('express');
 const baseRouter = express();
 const methodOverride = require('method-override');
-let db;
-if (parameters[2] == 'fakedb') {
-    // fake_db.js for simulation using a fake file (not a connectable db)
-    db = require('../fake_db.js');
-} else {
-    db = require('../postgresdb.js');
-}
 const { authRouter } = require('./authenticate.js');
 const { envelopeRouter } = require('./envelopes.js');
 const transactionRouter = require('./transactions.js');

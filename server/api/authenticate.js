@@ -1,21 +1,14 @@
 const parameters = process.argv;
 const express = require('express');
-let db;
-if (parameters[2] == 'fakedb') {
-    // fake_db.js for simulation using a fake file (not a connectable db)
-    db = require('../fake_db.js');
-} else {
-    db = require('../postgresdb.js');
-}
-// const session = require("express-session");
-// const store = new session.MemoryStore();
+// fake_db.js for simulation using a fake file (not a connectable db)
+const db = parameters[2] == 'fakedb' ? require('../fake_db.js') : require('../postgresdb.js');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const authRouter = express.Router();
 const user = require('../../entity/user.js');
 
-const printData = (req, res, next) => {
+const debugSession = (req, res, next) => {
     console.log("\n==============================")
     console.log(`req.body.username -------> ${req.body.username}`) 
     console.log(`req.body.password -------> ${req.body.password}`)
@@ -35,21 +28,6 @@ const printData = (req, res, next) => {
 
     next()
 }
-
-authRouter.use(express.static('html'));
-authRouter.use(express.static('public'));
-// authRouter.use(express.static(__dirname + '/public/css'));
-// authRouter.use(
-//     session({
-//       secret: "secret-key",
-//       resave: false,
-//       saveUninitialized: false,
-//       store,
-//     })
-//   );
-    
-// authRouter.use(passport.initialize());
-// authRouter.use(passport.session());
 
 passport.use(new LocalStrategy(async (username, password, done) => {
     let userResult = null;
@@ -118,7 +96,7 @@ authRouter.post('/', (req, res, next) => {
     })(req, res, next);
 });
         
-// authRouter.post('/', printData, passport.authenticate('local', { 
+// authRouter.post('/', passport.authenticate('local', {
 //     failureRedirect: '/login',
 //     successRedirect: '/budget',
 //     failureMessage: true
