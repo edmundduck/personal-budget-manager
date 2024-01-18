@@ -6,6 +6,7 @@ const envelope = require('../../entity/envelope.js');
 const transaction = require('../../entity/transaction.js');
 const { responseHandler, promiseLoader, twoPromisesLoader } = require('../middleware/loader.js');
 const { checkAuthenticated } = require('./authenticate.js');
+const { formatArray } = require('../util.js');
 const transactionRouter = express.Router();
 
 // Transaction API
@@ -82,6 +83,12 @@ transactionRouter.post('/', checkAuthenticated, (req, res, next) => {
     }
 }, responseHandler);
 
+transactionRouter.put('/', checkAuthenticated, (req, res, next) => {
+    req.session.error_msg = formatArray(req.session.error_msg, []);
+    req.session.error_msg.push('Transaction ID is mandatory in update operation.');
+    res.redirect(303, '/budget/transactions');
+}, responseHandler);
+
 transactionRouter.put('/:transactionId', checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
     next();
@@ -129,6 +136,12 @@ transactionRouter.put('/:transactionId', checkAuthenticated, (req, res, next) =>
     } else {
         next(new Error('Fail to get the result successfully from the database.'));
     }
+}, responseHandler);
+
+transactionRouter.delete('/', checkAuthenticated, (req, res, next) => {
+    req.session.error_msg = formatArray(req.session.error_msg, []);
+    req.session.error_msg.push('Transaction ID is mandatory in delete operation.');
+    res.redirect(303, '/budget/transactions');
 }, responseHandler);
 
 transactionRouter.delete('/:transactionId', checkAuthenticated, (req, res, next) => {

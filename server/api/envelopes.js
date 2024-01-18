@@ -5,6 +5,7 @@ const db = parameters[2] == 'fakedb' ? require('../fake_db.js') : require('../po
 const envelope = require('../../entity/envelope.js');
 const { responseHandler, twoPromisesLoader } = require('../middleware/loader.js');
 const { checkAuthenticated } = require('./authenticate.js');
+const { formatArray } = require('../util.js');
 const envelopeRouter = express.Router();
 
 // Envelope API
@@ -102,6 +103,12 @@ envelopeRouter.post('/transfer/:from/:to', checkAuthenticated, (req, res, next) 
     }
 }, responseHandler);
 
+envelopeRouter.put('/', checkAuthenticated, (req, res, next) => {
+    req.session.error_msg = formatArray(req.session.error_msg, []);
+    req.session.error_msg.push('Envelope ID is mandatory in update operation.');
+    res.redirect(303, '/budget/envelopes');
+}, responseHandler);
+
 envelopeRouter.put('/:envelopeId', checkAuthenticated, (req, res, next) => {
     const envelopeObj = new envelope({
         id: req.envelopeId,
@@ -112,6 +119,12 @@ envelopeRouter.put('/:envelopeId', checkAuthenticated, (req, res, next) => {
     req.code_success = 201;
     req.message = [''.concat("Envelope ID (", req.envelopeId, ") has been updated.")];
     next();
+}, responseHandler);
+
+envelopeRouter.delete('/', checkAuthenticated, (req, res, next) => {
+    req.session.error_msg = formatArray(req.session.error_msg, []);
+    req.session.error_msg.push('Envelope ID is mandatory in delete operation.');
+    res.redirect(303, '/budget/envelopes');
 }, responseHandler);
 
 envelopeRouter.delete('/:envelopeId', checkAuthenticated, (req, res, next) => {
