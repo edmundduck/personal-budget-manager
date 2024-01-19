@@ -12,6 +12,22 @@
                     element.formAction = splittedURL.join('');
                 });
             }
+            function updateTransferIds() {
+                const envelopeIDActionURL = document.getElementById('envelope_transfer_action');
+                const fromRadioButtons = document.querySelectorAll("input[type='radio'][name='transfer_from']");
+                const toRadioButtons = document.querySelectorAll("input[type='radio'][name='transfer_to']");
+                let fromValue = null;
+                let toValue = null;
+                fromRadioButtons.forEach(i => i.checked && (fromValue = i.value) );
+                toRadioButtons.forEach(i => i.checked && (toValue = i.value) );
+                envelopeIDActionURL.formAction = ''.concat(envelopeIDActionURL.formAction, fromValue, '/', toValue, '/');
+            }
+            function clearChoices() {
+                const fromRadioButtons = document.querySelectorAll("input[type='radio'][name='transfer_from']");
+                const toRadioButtons = document.querySelectorAll("input[type='radio'][name='transfer_to']");
+                fromRadioButtons.forEach(i => i.checked && (i.checked = false) );
+                toRadioButtons.forEach(i => i.checked && (i.checked = false) );
+            }
         </script>
     </head>
     <body>
@@ -29,6 +45,7 @@
                 <button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/" formmethod="GET">Select envelope</button>
                 <button type="submit" form="envelope_form" formaction="/budget/envelopes/" formmethod="POST">Add envelope</button>
                 <button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/?_method=PUT" formmethod="POST">Update envelope</button>
+                <button type="submit" id="envelope_transfer_action" form="envelope_form" formaction="/budget/envelopes/transfer/" formmethod="POST" onclick="updateTransferIds();">Transfer budget</button>
                 <button type="submit" class="envelope_id" form="envelope_form" formaction="/budget/envelopes/?_method=DELETE" formmethod="POST">Delete envelope</button>
             </div>
             <form id="envelope_form">
@@ -37,12 +54,15 @@
                         <tr>
                             <td><input type="input" id="input_id" name="id" placeholder="ID" onchange="updateActionId();"></input></td>
                             <td><input style="min-width: 300px" type="input" id="input_name" name="name" placeholder="Name"></input></td>
-                            <td><input type="input" id="input_budget" name="budget" placeholder="New Budget"></input></td>
+                            <td><input type="input" id="input_budget" name="budget" placeholder="New or Transfer Budget"></input></td>
+                            <td colspan="2" style="text-align: center;"><input type="button" name="clear_transfer_radios" value="Clear" onclick="clearChoices();"/></td>
                         </tr>
                         <tr>
                             <td>ID</td>
                             <td>Envelope Name</td>
                             <td>Budget</td>
+                            <td>From</td>
+                            <td>To</td>
                         </tr>
                     </thead>
                     <% 
@@ -54,6 +74,24 @@
                                     <td><%= envelope.id %></td>
                                     <td><%= envelope.name %></td>
                                     <td><%= envelope.budget %></td>
+                                    <td>
+                                        <% if (envelope.result && envelope.from) { %>
+                                        <p style="font-weight: bold;">&#x2713;</p>
+                                        <% } else if (envelope.result) { %>
+                                        <p></p>
+                                        <% } else { %>
+                                        <input type="radio" name="transfer_from" value="<%= envelope.id %>" />
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (envelope.result && envelope.to) { %>
+                                        <p style="font-weight: bold;">&#x2713;</p>
+                                        <% } else if (envelope.result) { %>
+                                        <p></p>
+                                        <% } else { %>
+                                        <input type="radio" name="transfer_to" value="<%= envelope.id %>" />
+                                        <% } %>
+                                    </td>
                                 </tr>
                     <%
                                 });
@@ -63,6 +101,24 @@
                                     <td><%= data.id %></td>
                                     <td><%= data.name %></td>
                                     <td><%= data.budget %></td>
+                                    <td>
+                                        <% if (data.result && data.from) { %>
+                                        <p style="font-weight: bold;">&#x2713;</p>
+                                        <% } else if (data.result) { %>
+                                        <p></p>
+                                        <% } else { %>
+                                        <input type="radio" name="transfer_from" value="<%= data.id %>" />
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (data.result && data.to) { %>
+                                        <p style="font-weight: bold;">&#x2713;</p>
+                                        <% } else if (data.result) { %>
+                                        <p></p>
+                                        <% } else { %>
+                                        <input type="radio" name="transfer_to" value="<%= data.id %>" />
+                                        <% } %>
+                                    </td>
                                 </tr>
                     <%
                             };

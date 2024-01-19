@@ -9,7 +9,7 @@ const { formatArray } = require('../util.js');
 const envelopeRouter = express.Router();
 
 // Envelope API
-envelopeRouter.use(['/', '/:envelopeId', '/transfer/:from/:to'], (req, res, next) => {
+envelopeRouter.use((req, res, next) => {
     req.page = 'envelopes';
     res.locals.session = req.session;
     next();
@@ -32,7 +32,7 @@ envelopeRouter.use('/:envelopeId', (req, res, next) => {
 envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
     const fromId = req.params.from;
     const toId = req.params.to;
-    const budget = req.query.budget;
+    const budget = req.body.budget;
     if (fromId && toId && budget) {
         try {
             req.fromId = parseInt(fromId);
@@ -47,9 +47,54 @@ envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
     }
 });
 
-// baseRouter.get('/', checkAuthenticated, (req, res, next) => {
-//     res.render('main', { error_msg: null });
-// });
+envelopeRouter.post('/transfer/:from/:to', checkAuthenticated, (req, res, next) => {
+    req.resultOne = db.getDatabaseRecords(req.fromId, db.selectOneEnvelopeQuery);
+    req.resultTwo = db.getDatabaseRecords(req.toId, db.selectOneEnvelopeQuery);
+    next();
+}, twoPromisesLoader, (req, res, next) => {
+    const fromEnvelope = new envelope(req.resultOne);
+    const toEnvelope = new envelope(req.resultTwo);
+    fromEnvelope.budget = parseFloat(fromEnvelope.budget) - parseFloat(req.budget);
+    toEnvelope.budget = parseFloat(toEnvelope.budget) + parseFloat(req.budget);
+    req.resultOne = db.createUpdateDatabaseRecord(fromEnvelope, db.updateEnvelopeQuery, null);
+    req.resultTwo = db.createUpdateDatabaseRecord(toEnvelope, db.updateEnvelopeQuery, null);
+    next();
+}, twoPromisesLoader, (req, res, next) => {
+    if (req.resultOne && req.resultTwo) {
+        const fromResult = req.resultOne[0];
+        const toResult = req.resultTwo[0];
+        req.result = [{
+            id: fromResult.id,
+            name: fromResult.name,
+            budget: fromResult.budget,
+            from: true,
+            result: true
+        }, {
+            id: toResult.id,
+            name: toResult.name,
+            budget: toResult.budget,
+            to: true,
+            result: true
+        }];
+        req.code_success = 201;
+        req.message = [''.concat("Budget transfer from envelope ID (", fromResult.id, ") to envelope ID (", toResult.id, ") has been completed.")];
+        next();
+    } else {
+        next(new Error('Fail to get the transfer result successfully from the database.'));
+    }
+}, responseHandler);
+
+envelopeRouter.get(['/transfer', '/transfer/*'], checkAuthenticated, (req, res, next) => {
+    req.session.error_msg = formatArray(req.session.error_msg, []);
+    req.session.error_msg.push('Not all mandatory parameters are included in the transfer request.');
+    res.redirect(303, '/budget/envelopes');
+}, responseHandler);
+
+envelopeRouter.post('/transfer/*', checkAuthenticated, (req, res, next) => {
+    req.session.error_msg = formatArray(req.session.error_msg, []);
+    req.session.error_msg.push('Not all mandatory parameters are included in the transfer request.');
+    res.redirect(303, '/budget/envelopes');
+}, responseHandler);
 
 envelopeRouter.get('/', checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(null, db.selectAllEnvelopesQuery);
@@ -72,35 +117,6 @@ envelopeRouter.post('/', checkAuthenticated, (req, res, next) => {
     req.code_success = 201;
     req.message = [''.concat("New envelope \"", req.body.name, "\" has been created.")];
     next();
-}, responseHandler);
-
-envelopeRouter.post('/transfer/:from/:to', checkAuthenticated, (req, res, next) => {
-    req.resultOne = db.getDatabaseRecords(req.fromId, db.selectOneEnvelopeQuery);
-    req.resultTwo = db.getDatabaseRecords(req.toId, db.selectOneEnvelopeQuery);
-    next();
-}, twoPromisesLoader, (req, res, next) => {
-    const fromEnvelope = new envelope(req.resultOne);
-    const toEnvelope = new envelope(req.resultTwo);
-    fromEnvelope.budget = parseFloat(fromEnvelope.budget) - parseFloat(req.budget);
-    toEnvelope.budget = parseFloat(toEnvelope.budget) + parseFloat(req.budget);
-    req.resultOne = db.createUpdateDatabaseRecord(fromEnvelope, db.updateEnvelopeQuery, null);
-    req.resultTwo = db.createUpdateDatabaseRecord(toEnvelope, db.updateEnvelopeQuery, null);
-    next();
-}, twoPromisesLoader, (req, res, next) => {
-    if (req.resultOne && req.resultTwo) {
-        const fromResult = req.resultOne;
-        const toResult = req.resultTwo;
-        req.result = {
-            sourceId: fromResult.id,
-            targetId: toResult.id,
-            sourceBudgetAfter: fromResult.budget,
-            targetBudgetAfter: toResult.budget
-        }
-        req.code_success = 201;
-        next();
-    } else {
-        next(new Error('Fail to get the transfer result successfully from the database.'));
-    }
 }, responseHandler);
 
 envelopeRouter.put('/', checkAuthenticated, (req, res, next) => {
