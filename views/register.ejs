@@ -11,24 +11,15 @@
                     <tr>
                         <td colspan="2" class="error_msg">
                             <%- include('./common/error.ejs'); %>
-                            <!--
-                            <ul>
-                                <% if (error_msg) {
-                                    error_msg.forEach((err) => { %>
-                                        <li><%= err %></li>
-                                <%  });
-                                }; %>
-                            </ul>
-                            -->
                         </td>
                     </tr>
                     <tr>
                         <td class="cell_label">Full Name</td>
-                        <td><input type="text" name="fullname" placeholder="Your full name" required/></td>
+                        <td><input type="text" name="fullname" placeholder="Your full name" value="<%= fullname %>" required/></td>
                     </tr>
                     <tr>
                         <td class="cell_label">Email Address</td>
-                        <td><input type="text" name="username" placeholder="Email" required/></td>
+                        <td><input type="text" name="username" placeholder="Email" value="<%= username %>" required/></td>
                     </tr>
                     <tr>
                         <td class="cell_label">Password</td>

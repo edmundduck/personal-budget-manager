@@ -7,6 +7,7 @@ const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const authRouter = express.Router();
 const user = require('../../entity/user.js');
+const url = require('url');
 
 const debugSession = (req, res, next) => {
     console.log("\n==============================")
@@ -76,21 +77,23 @@ const checkAuthenticated = (req, res, next) => {
 
 authRouter.get('/', (req, res, next) => {
     const username = req.query.username ? decodeURIComponent(req.query.username) : null;
-    res.render('login', { error_msg: null, username: username });
+    const message = req.query.confirm_msg ? decodeURIComponent(req.query.confirm_msg) : null;
+    const errorMessage = req.query.error_msg ? decodeURIComponent(req.query.error_msg) : null;
+    res.render('login', { confirm_msg: message, error_msg: errorMessage, username: username });
 });
 
 authRouter.post('/', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
-            return res.render('login', { error_msg: [info.error_msg], username: req.body.username });
+            return res.render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
         }
         if (!user) {
-            return res.render('login', { error_msg: [info.error_msg], username: req.body.username });
+            return res.render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
         }
 
         req.logIn(user, (err) => {
             if (err) {
-                return res.render('login', { error_msg: [info.error_msg], username: req.body.username  });
+                return res.render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username  });
             }
             return res.redirect('../budget');
         });
@@ -104,7 +107,7 @@ authRouter.post('/', (req, res, next) => {
 // }));
 
 authRouter.get('/new-user', (req, res, next) => {
-    res.render('register', { error_msg: null });
+    res.render('register', { error_msg: null, username: null, fullname: null });
 });
 
 authRouter.post('/new-user', async (req, res, next) => {
@@ -114,7 +117,7 @@ authRouter.post('/new-user', async (req, res, next) => {
 
     if (password != passwordConfirm) {
         errorMsg.push('Password does not match.');
-        res.render('register', { error_msg: errorMsg });
+        res.render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
         return;
     }
 
@@ -127,11 +130,15 @@ authRouter.post('/new-user', async (req, res, next) => {
     });
     try{
         const userResult = await db.createUpdateDatabaseRecord(newUserObj, db.createUserQuery, null);
-        // res.render('main', { message: userResult });
-        res.redirect(201, '../../');
+        res.status(201).redirect(url.format({
+            pathname: '/login',
+            query: {
+                "confirm_msg": 'Account has been created successfully. Please login with your new account.'
+            }
+        }));
     } catch(err) {
         errorMsg.push(err.message);
-        res.render('register', { error_msg: errorMsg});
+        res.render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
     }
 });
 

@@ -40,7 +40,7 @@ baseRouter.get('/budget', (req, res, next) => {
 baseRouter.use('/budget/envelopes', envelopeRouter);
 baseRouter.use('/budget/transactions', transactionRouter);
 baseRouter.get('/logout', (req, res, next) => {
-    const username = encodeURIComponent(req.user[0].email);
+    const username = req.user ? encodeURIComponent(req.user[0].email) : null;
     req.logOut((err) => {
         if (err) {
             return next(err);

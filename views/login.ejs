@@ -4,12 +4,15 @@
         <%- include('./common/header.ejs'); %>
     </head>
     <body>
+        <div class="confirm_msg">
+            <%- include('./common/confirm.ejs'); %>
+        </div>
+                <div class="error_msg">
+            <%- include('./common/error.ejs'); %>
+        </div>
         <div class="center-align flexi_container">
             <div class="login_form column_display">
                 <h1>Login</h1>
-                <div class="error_msg">
-                    <%- include('./common/error.ejs'); %>
-                </div>
                 <form action="/login" method="POST">
                     <input type="text" name="username" placeholder="User ID" value="<%= username %>" required/><br>
                     <input type="password" name="password" placeholder="Password" required/><br>
