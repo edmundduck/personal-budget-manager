@@ -11,6 +11,8 @@ const responseHandler = (req, res, next) => {
     if (result instanceof Promise) {
         result.then((resolve) => {
             res.status(statusCode).render(page, { data: resolve, confirm_msg: message, error_msg: errorMessage });
+        }).catch((error) => {
+            res.status(501).render(page, { data: null, confirm_msg: null, error_msg: error.message });
         });
     } else if (result) {
         res.status(statusCode).render(page, { data: result, confirm_msg: message, error_msg: errorMessage });
@@ -21,6 +23,8 @@ const promiseLoader = async (req, res, next) => {
     const result = req.result;
     await result.then((res) => {
         req.result = res;
+    }).catch((error) => {
+        next(error);
     });
     next();
 }
@@ -31,6 +35,8 @@ const twoPromisesLoader = async (req, res, next) => {
     await Promise.all([resultOne, resultTwo]).then((res) => {
         req.resultOne = res[0];
         req.resultTwo = res[1];
+    }).catch((error) => {
+        next(error);
     });
     next();
 }
