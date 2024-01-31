@@ -4,12 +4,12 @@
             if (Array.isArray(error_msg)) {
                 error_msg.forEach((err) => {
     %>
-                    <li><%= err %></li>
+                    <li class="error_msg"><%= err %></li>
     <%
                 });
             } else {
     %>
-                <li><%= error_msg %></li>
+                <li class="error_msg"><%= error_msg %></li>
     <%
             }
         };

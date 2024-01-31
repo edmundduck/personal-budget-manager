@@ -4,12 +4,12 @@
             if (Array.isArray(confirm_msg)) {
                 confirm_msg.forEach((msg) => {
     %>
-                    <li><%= msg %></li>
+                    <li class="confirm_msg"><%= msg %></li>
     <%
                 });
             } else {
     %>
-                <li><%= confirm_msg %></li>
+                <li class="confirm_msg"><%= confirm_msg %></li>
     <%
             }
         };

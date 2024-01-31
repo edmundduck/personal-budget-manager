@@ -5,6 +5,10 @@ const PORT = 3000;
 const { baseRouter } = require('./server/api/api');
 app.use('/', baseRouter);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server started, listening to the port ${PORT}...`);
 });
+
+module.exports = {
+    server
+};

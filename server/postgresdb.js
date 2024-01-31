@@ -48,6 +48,7 @@ const getDatabaseRecords = async (id, sqlFunc) => {
         } else if (data.rows.length > 1) {
             return data.rows;
         }
+        return null;
     } catch (err) {
         console.log('Error: Fail to get records from DB ...');
         throw new Error(err);
@@ -71,9 +72,10 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
                     obj.setId(1);
                 }
             }
-            await connection.query(sqlFunc(obj));
+            const data = await connection.query(sqlFunc(obj));
             await connection.query('COMMIT');
-            return [obj.getObject()];
+            // return [obj.getObject()];
+            return data.rows[0] ? [data.rows[0]] : null;
         } catch (err) {
             await connection.query('ROLLBACK');
             console.log('Error: Fail to create or update record in DB ... Rollback initiated ...');
@@ -91,7 +93,7 @@ const deleteDatabaseRecord = async (id, sqlFunc) => {
         }
         const data = await connection.query(sqlFunc(id));
         await connection.query('COMMIT');
-        return [data.rows[0]];
+        return data.rows[0] ? [data.rows[0]] : null;
     } catch (err) {
         await connection.query('ROLLBACK');
         console.log('Error: Fail to delete records from DB ... Rollback initiated ...');
@@ -101,15 +103,17 @@ const deleteDatabaseRecord = async (id, sqlFunc) => {
 
 const constructUpdateQueryById = (obj, table) => {
     let sqlString = 'UPDATE ' + table + ' SET  ';
+    let returnString = 'id';
     let counter = 2;
     Object.entries(obj).forEach(([k, v]) => {
         if (k.toLowerCase() != 'id' && obj.getDataKeys().includes(k) && v) {
             // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
             sqlString = sqlString + '"' + k + '" = $' + counter + ', ';
+            returnString = returnString + ', ' + k;
             counter++;
         }
     });
-    sqlString = sqlString.replace(/,\s*$/, ' ') + ' WHERE id = $1';
+    sqlString = sqlString.replace(/,\s*$/, ' ') + ' WHERE id = $1 RETURNING ' + returnString;
     return sqlString;
 };
 
@@ -138,7 +142,7 @@ const selectLastEnvelopeIdQuery = () => {
 const createEnvelopeQuery = (obj) => {
     return {
         // name: 'create-envelope',
-        text: 'INSERT INTO app.envelopes (id, name, budget) VALUES ($1, $2, $3)', 
+        text: 'INSERT INTO app.envelopes (id, name, budget) VALUES ($1, $2, $3) RETURNING id, name, budget',
         values: [obj.getId(), obj.getName(), obj.getBudget()]
     };
 };
@@ -185,7 +189,7 @@ const createTransactionQuery = (obj) => {
     // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
     return {
         // name: 'create-transaction',
-        text: 'INSERT INTO app.transactions (id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5)', 
+        text: 'INSERT INTO app.transactions (id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5) RETURNING id, date, amount, recipient, envelopeId',
         values: [obj.getId(), obj.getDate(), obj.getAmount(), obj.getRecipient(), obj.getEnvelopeId()]
     };
 };
@@ -217,7 +221,7 @@ const selectOneUserQuery = (email) => {
 const createUserQuery = (obj) => {
     return {
         // name: 'create-user',
-        text: 'INSERT INTO app.usersauth (name, email, hash) VALUES ($1, $2, $3)', 
+        text: 'INSERT INTO app.usersauth (name, email, hash) VALUES ($1, $2, $3) RETURNING email',
         values: [obj.getName(), obj.getEmail(), obj.getPasswordHash()]
     };
 };

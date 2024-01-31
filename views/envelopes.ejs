@@ -6,8 +6,9 @@
             function updateActionId() {
                 const envelopeIDActionURL = document.getElementsByClassName('envelope_id');  
                 const envelopeId = document.getElementById('input_id').value;
+                const re = /[^/]*\?/;
                 Array.from(envelopeIDActionURL).forEach(element => {
-                    let splittedURL = element.formAction.split('?', 2);
+                    let splittedURL = element.formAction.split(re);
                     splittedURL.splice(1, 0, envelopeId, '?');
                     element.formAction = splittedURL.join('');
                 });
@@ -71,9 +72,9 @@
                                 data.forEach((envelope) => {
                     %>
                                 <tr>
-                                    <td><%= envelope.id %></td>
-                                    <td><%= envelope.name %></td>
-                                    <td><%= envelope.budget %></td>
+                                    <td class="result_id"><%= envelope.id %></td>
+                                    <td class="result_name"><%= envelope.name %></td>
+                                    <td class="result_budget"><%= envelope.budget %></td>
                                     <td>
                                         <% if (envelope.result && envelope.from) { %>
                                         <p style="font-weight: bold;">&#x2713;</p>
@@ -98,9 +99,9 @@
                             } else {
                     %>
                                 <tr>
-                                    <td><%= data.id %></td>
-                                    <td><%= data.name %></td>
-                                    <td><%= data.budget %></td>
+                                    <td class="result_id"><%= data.id %></td>
+                                    <td class="result_name"><%= data.name %></td>
+                                    <td class="result_budget"><%= data.budget %></td>
                                     <td>
                                         <% if (data.result && data.from) { %>
                                         <p style="font-weight: bold;">&#x2713;</p>

@@ -6,8 +6,9 @@
             function updateActionId() {
                 const envelopeIDActionURL = document.getElementsByClassName('transaction_id');  
                 const envelopeId = document.getElementById('input_id').value;
+                const re = /[^/]*\?/;
                 Array.from(envelopeIDActionURL).forEach(element => {
-                    let splittedURL = element.formAction.split('?', 2);
+                    let splittedURL = element.formAction.split(re);
                     splittedURL.splice(1, 0, envelopeId, '?');
                     element.formAction = splittedURL.join('');
                 });

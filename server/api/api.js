@@ -8,6 +8,7 @@ const { errorMessageHandler, errorRenderHandler } = require('../middleware/loade
 const passport = require('passport');
 const session = require("express-session");
 const store = new session.MemoryStore();
+const bodyParser = require('body-parser');
 const url = require('url');
 
 baseRouter.use(express.static('html'));
@@ -16,7 +17,8 @@ baseRouter.use(express.static('public'));
 baseRouter.use(methodOverride('_method'));
 baseRouter.set('view engine', 'ejs');
 // IMPORTANT - to load form input fields into req.body
-baseRouter.use(express.urlencoded({ extended: true }));
+baseRouter.use(bodyParser.json());
+baseRouter.use(bodyParser.urlencoded({ extended: true }));
 
 baseRouter.use(
     session({

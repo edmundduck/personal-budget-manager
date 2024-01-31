@@ -40,13 +40,11 @@ passport.use(new LocalStrategy(async (username, password, done) => {
     }
 
     if (!userResult || userResult.length <= 0) {
-        console.log('Error: User does not exist.');
         return done(null, false, { error_msg: 'User does not exist.' });
     }
 
     const matchedHash = await bcrypt.compare(password, userResult[0].hash);
     if (!matchedHash) {
-        console.log('Error: Password does not match.');
         return done(null, false, { error_msg: 'Password does not match.' });
     }
 
@@ -85,15 +83,15 @@ authRouter.get('/', (req, res, next) => {
 authRouter.post('/', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
-            return res.render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
+            return res.status(401).render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
         }
         if (!user) {
-            return res.render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
+            return res.status(401).render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
         }
 
         req.logIn(user, (err) => {
             if (err) {
-                return res.render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username  });
+                return res.status(401).render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username  });
             }
             return res.redirect('../budget');
         });
@@ -117,7 +115,7 @@ authRouter.post('/new-user', async (req, res, next) => {
 
     if (password != passwordConfirm) {
         errorMsg.push('Password does not match.');
-        res.render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
+        res.status(401).render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
         return;
     }
 
@@ -138,7 +136,7 @@ authRouter.post('/new-user', async (req, res, next) => {
         }));
     } catch(err) {
         errorMsg.push(err.message);
-        res.render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
+        res.status(500).render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
     }
 });
 

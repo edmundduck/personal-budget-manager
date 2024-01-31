@@ -3,14 +3,19 @@ const { formatArray } = require('../util.js');
 const responseHandler = (req, res, next) => {
     const result = req.result;
     const page = req.page;
-    const statusCode = req.code_success || 200;
+    let statusCode = req.code_success || 200;
     const message = formatArray(req.message);
-    const errorMessage = formatArray(req.session.error_msg);
+    const errorMessage = formatArray(req.session.error_msg, []);
     // Reset error message in session
     req.session.error_msg = null;
     if (result instanceof Promise) {
         result.then((resolve) => {
-            res.status(statusCode).render(page, { data: resolve, confirm_msg: message, error_msg: errorMessage });
+            if (resolve) {
+                res.status(statusCode).render(page, { data: resolve, confirm_msg: message, error_msg: errorMessage });
+            } else {
+                errorMessage.push('No data returned.');
+                res.status(statusCode).render(page, { data: null, confirm_msg: null, error_msg: errorMessage });
+            }
         }).catch((error) => {
             res.status(501).render(page, { data: null, confirm_msg: null, error_msg: error.message });
         });
@@ -42,7 +47,7 @@ const twoPromisesLoader = async (req, res, next) => {
 }
 
 const errorMessageHandler = (err, req, res, next) => {
-    console.log('Error: ' + err.message);
+    // console.log('Error: ' + err.message);
     next(err);
 }
 
