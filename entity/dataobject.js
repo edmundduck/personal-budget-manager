@@ -1,14 +1,8 @@
 class DataObject {
     constructor(obj) {
-        try {
-            if (obj instanceof Array) {
-                obj = obj[0];
-            }
-            this.id = obj.id;
-            this.err = [];
-        } catch (e) {
-            throw new Error('Error occurs when assigning attributes from the object.');
-        }
+        if (obj instanceof Array) obj = obj[0];
+        if (obj && Object.hasOwn(obj, 'id')) this.id = obj.id;
+        this.err = [];
     }
 
     isValid() {

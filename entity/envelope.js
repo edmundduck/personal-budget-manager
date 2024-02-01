@@ -3,11 +3,11 @@ const dataobject = require('./dataobject.js');
 class Envelope extends dataobject {
     constructor(obj) {
         super(obj);
-        if (obj instanceof Array) {
-            obj = obj[0];
+        if (obj) {
+            if (obj instanceof Array) obj = obj[0];
+            this.name = obj.name;
+            this.budget = obj.budget;
         }
-        this.name = obj.name;
-        this.budget = obj.budget;
     }
 
     isValid() {
@@ -16,6 +16,10 @@ class Envelope extends dataobject {
                 this.id = Number(this.id);
             } else {
                 this.setError(new Error('Id should be in numeric value.', { cause: 'id' }));
+                return false;
+            }
+            if (this.id <= 0) {
+                this.setError(new Error('Id should be positive.', { cause: 'id' }));
                 return false;
             }
         }

@@ -56,22 +56,22 @@
                                 data.forEach((transaction) => {
                     %>
                             <tr>
-                                <td><%= transaction.id %></td>
-                                <td><%= transaction.date ? ( typeof transaction.date == "string" ? transaction.date : transaction.date.toDateString('en-GB')) : null %></td>
-                                <td><%= transaction.amount %></td>
-                                <td><%= transaction.recipient %></td>
-                                <td><%= transaction.envelopeId %></td>
+                                <td class="result_id"><%= transaction.id %></td>
+                                <td class="result_date"><%= transaction.date ? ( typeof transaction.date == "string" ? transaction.date : transaction.date.toDateString('en-GB')) : null %></td>
+                                <td class="result_amount"><%= transaction.amount %></td>
+                                <td class="result_recipient"><%= transaction.recipient %></td>
+                                <td class="result_envelopeid"><%= transaction.envelopeId %></td>
                             </tr>
                     <%
                                 });
                             } else {
                     %>
                             <tr>
-                                <td><%= data.id %></td>
-                                <td><%= data.date ? ( typeof data.date == "string" ? data.date : data.date.toDateString('en-GB')) : null %></td>
-                                <td><%= data.amount %></td>
-                                <td><%= data.recipient %></td>
-                                <td><%= data.envelopeId %></td>
+                                <td class="result_id"><%= data.id %></td>
+                                <td class="result_date"><%= data.date ? ( typeof data.date == "string" ? data.date : data.date.toDateString('en-GB')) : null %></td>
+                                <td class="result_amount"><%= data.amount %></td>
+                                <td class="result_recipient"><%= data.recipient %></td>
+                                <td class="result_envelopeid"><%= data.envelopeId %></td>
                             </tr>
                     <%
                             };

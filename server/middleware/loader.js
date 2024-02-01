@@ -30,6 +30,7 @@ const promiseLoader = async (req, res, next) => {
         req.result = res;
     }).catch((error) => {
         next(error);
+        return;
     });
     next();
 }
@@ -42,6 +43,7 @@ const twoPromisesLoader = async (req, res, next) => {
         req.resultTwo = res[1];
     }).catch((error) => {
         next(error);
+        return;
     });
     next();
 }
@@ -51,11 +53,19 @@ const errorMessageHandler = (err, req, res, next) => {
     next(err);
 }
 
+// Validation error goes here
 const errorRenderHandler = (err, req, res, next) => {
     const page = req.page;
     const statusCode = err.status || 500;
-    const message = err.message || "Something went wrong, please refresh the page and try again.";
-    res.status(statusCode).render(page, { data: null, confirm_msg: null, error_msg: [message] });
+    let message;
+    if (err instanceof Error) {
+        message = [err.message] || ["Something went wrong, please refresh the page and try again."];
+    } else if (Array.isArray(err)) {
+        message = err;
+    } else {
+        message = [err];
+    }
+    res.status(statusCode).render(page, { data: null, confirm_msg: null, error_msg: message });
 }
 
 module.exports = { 

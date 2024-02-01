@@ -16,17 +16,17 @@ transactionRouter.use(['/', '/:transactionId]'], (req, res, next) => {
     next();
 });
 
-transactionRouter.use('/:transactionId', checkAuthenticated, (req, res, next) => {
+transactionRouter.use('/:transactionId', (req, res, next) => {
     const id = req.params.transactionId;
-    if (id) {
+    if (id && id > 0) {
         try {
             req.transactionId = parseInt(id);
             next();
         } catch (err) {
-            res.status(400).send(err.message);
+            next(err);
         }
     } else {
-        next(new Error('Transaction ID was not found.'))
+        next(new Error('Error: Missing or invalid transaction ID.'));
     }
 });
 
@@ -44,7 +44,11 @@ transactionRouter.get('/:transactionId', checkAuthenticated, (req, res, next) =>
 
 transactionRouter.post('/', checkAuthenticated, (req, res, next) => {
     // Check if the envelope balance is larger than the transaction amount
-    req.result = db.getDatabaseRecords(req.body.envelopeId, db.selectOneEnvelopeQuery);
+    if (req.body.envelopeId) {
+        req.result = db.getDatabaseRecords(req.body.envelopeId, db.selectOneEnvelopeQuery);
+    } else {
+        next(new Error('Missing envelope ID.'));
+    }
     next();
 }, promiseLoader, (req, res, next) => {
     const envelopeObj = new envelope(req.result);
@@ -54,6 +58,10 @@ transactionRouter.post('/', checkAuthenticated, (req, res, next) => {
         recipient: req.body.recipient,
         envelopeId: req.body.envelopeId
     });
+    if (!transactionObj.isValid()) {
+        next(transactionObj.getError());
+        return;
+    }
     if (envelopeObj.budget >= transactionObj.amount) {
         envelopeObj.setBudget(envelopeObj.getBudget() - transactionObj.getAmount());
         req.resultOne = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
@@ -109,6 +117,10 @@ transactionRouter.put('/:transactionId', checkAuthenticated, (req, res, next) =>
     });
     const newAmount = transactionObj.getAmount() || originalTransactionObj.getAmount();
     const diffAmount = newAmount - originalTransactionObj.getAmount();
+    if (!transactionObj.isValid()) {
+        next(transactionObj.getError());
+        return;
+    }
     if (envelopeObj.budget >= diffAmount) {
         envelopeObj.setBudget(envelopeObj.getBudget() - diffAmount);
         req.resultOne = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);

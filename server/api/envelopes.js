@@ -15,20 +15,6 @@ envelopeRouter.use((req, res, next) => {
     next();
 });
 
-envelopeRouter.use('/:envelopeId', (req, res, next) => {
-    const id = req.params.envelopeId;
-    if (id) {
-        try {
-            req.envelopeId = parseInt(id);
-            next();
-        } catch (err) {
-            next(err);
-        }
-    } else {
-        next(new Error('Envelope ID was not found.'));
-    }
-});
-
 envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
     const fromId = req.params.from;
     const toId = req.params.to;
@@ -96,6 +82,20 @@ envelopeRouter.post('/transfer/*', checkAuthenticated, (req, res, next) => {
     res.redirect(303, '/budget/envelopes');
 }, responseHandler);
 
+envelopeRouter.use('/:envelopeId', (req, res, next) => {
+    const id = req.params.envelopeId;
+    if (id && id > 0) {
+        try {
+            req.envelopeId = parseInt(id);
+            next();
+        } catch (err) {
+            next(err);
+        }
+    } else {
+        next(new Error('Error: Missing or invalid envelope ID.'));
+    }
+});
+
 envelopeRouter.get('/', checkAuthenticated, (req, res, next) => {
     req.result = db.getDatabaseRecords(null, db.selectAllEnvelopesQuery);
     req.code_success = 200;
@@ -113,6 +113,10 @@ envelopeRouter.post('/', checkAuthenticated, (req, res, next) => {
         name: req.body.name,
         budget: req.body.budget
     });
+    if (!envelopeObj.isValid()) {
+        next(envelopeObj.getError());
+        return;
+    }
     req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery, db.selectLastEnvelopeIdQuery);
     req.code_success = 201;
     req.message = [''.concat("New envelope \"", req.body.name, "\" has been created.")];
@@ -131,6 +135,10 @@ envelopeRouter.put('/:envelopeId', checkAuthenticated, (req, res, next) => {
         name: req.body.name,
         budget: req.body.budget
     });
+    if (!envelopeObj.isValid()) {
+        next(envelopeObj.getError());
+        return;
+    }
     req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
     req.code_success = 201;
     req.message = [''.concat("Envelope ID (", req.envelopeId, ") has been updated.")];

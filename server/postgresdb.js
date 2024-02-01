@@ -57,7 +57,7 @@ const getDatabaseRecords = async (id, sqlFunc) => {
 
 const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
     if (!obj || !(obj instanceof dataobject)) {
-        throw new Error('Not valid value or data type (Data Object) for creating or updating record in database.');
+        throw new Error('Error: Not valid value or data type (Data Object) for creating or updating record in database.');
     }
     if (obj.isValid()) {
         try {
@@ -74,7 +74,7 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
             }
             const data = await connection.query(sqlFunc(obj));
             await connection.query('COMMIT');
-            // return [obj.getObject()];
+            // return [obj.getObject()]
             return data.rows[0] ? [data.rows[0]] : null;
         } catch (err) {
             await connection.query('ROLLBACK');
@@ -82,7 +82,7 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
             throw new Error(err);
         }
     } else {
-        throw new Error('Validation on the data object fails, database processsing is aborted.');
+        throw new Error('Error: Generic data validation failure, data processsing is aborted.');
     }
 }
 
@@ -109,7 +109,7 @@ const constructUpdateQueryById = (obj, table) => {
         if (k.toLowerCase() != 'id' && obj.getDataKeys().includes(k) && v) {
             // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
             sqlString = sqlString + '"' + k + '" = $' + counter + ', ';
-            returnString = returnString + ', ' + k;
+            returnString = returnString + ', "' + k + '"'; 
             counter++;
         }
     });
@@ -189,7 +189,7 @@ const createTransactionQuery = (obj) => {
     // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
     return {
         // name: 'create-transaction',
-        text: 'INSERT INTO app.transactions (id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5) RETURNING id, date, amount, recipient, envelopeId',
+        text: 'INSERT INTO app.transactions (id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5) RETURNING id, date, amount, recipient, "envelopeId"',
         values: [obj.getId(), obj.getDate(), obj.getAmount(), obj.getRecipient(), obj.getEnvelopeId()]
     };
 };

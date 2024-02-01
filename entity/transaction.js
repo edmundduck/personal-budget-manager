@@ -3,13 +3,13 @@ const dataobject = require('./dataobject.js');
 class Transaction extends dataobject {
     constructor(obj) {
         super(obj);
-        if (obj instanceof Array) {
-            obj = obj[0];
+        if (obj) {
+            if (obj instanceof Array) obj = obj[0];
+            this.date = obj.date;
+            this.amount = obj.amount;
+            this.recipient = obj.recipient;
+            this.envelopeId = obj.envelopeId;
         }
-        this.date = obj.date;
-        this.amount = obj.amount;
-        this.recipient = obj.recipient;
-        this.envelopeId = obj.envelopeId;
     }
 
     isValid() {
@@ -20,24 +20,24 @@ class Transaction extends dataobject {
                 this.setError(new Error('Id should be in numeric value.', { cause: 'id' }));
                 return false;
             }
-        }
-        if (this.date) {
-            if (isNaN(Date.parse(this.date))) {
-                this.setError(new Error('Date format is not valid.', { cause: 'date' }));
+            if (this.id <= 0) {
+                this.setError(new Error('Id should be positive.', { cause: 'id' }));
                 return false;
             }
         }
-        if (this.amount) {
-            if (!isNaN(parseFloat(this.amount))) {
-                this.amount = Number(this.amount);
-            } else {
-                this.setError(new Error('Amount should be in numeric value.', { cause: 'amount' }));
-                return false;
-            }
-            if (this.amount < 0) {
-                this.setError(new Error('Amount should be either zero or positive.', { cause: 'amount' }));
-                return false;
-            }
+        if (isNaN(Date.parse(this.date))) {
+            this.setError(new Error('Date format is not valid.', { cause: 'date' }));
+            return false;
+        }
+        if (!isNaN(parseFloat(this.amount))) {
+            this.amount = Number(this.amount);
+        } else {
+            this.setError(new Error('Amount should be in numeric value.', { cause: 'amount' }));
+            return false;
+        }
+        if (this.amount < 0) {
+            this.setError(new Error('Amount should be either zero or positive.', { cause: 'amount' }));
+            return false;
         }
         if (this.recipient) {
             if (typeof(this.recipient) != "string") {
@@ -45,13 +45,11 @@ class Transaction extends dataobject {
                 return false;
             }
         }
-        if (this.envelopeId) {
-            if (!isNaN(parseInt(this.envelopeId))) {
-                this.envelopeId = Number(this.envelopeId);
-            } else {
-                this.setError(new Error('Envelope Id should be in numeric value.', { cause: 'envelopeId' }));
-                return false;
-            }
+        if (!isNaN(parseInt(this.envelopeId))) {
+            this.envelopeId = Number(this.envelopeId);
+        } else {
+            this.setError(new Error('Envelope Id should be in numeric value.', { cause: 'envelopeId' }));
+            return false;
         }
         return true;
     }
