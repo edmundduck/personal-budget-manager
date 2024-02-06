@@ -96,6 +96,112 @@ describe('Unit test', function() {
                 }
             );
         });
+
+        describe('Register a new user', function() {
+            let newUserId;
+
+            it('Register a new user with all properties available', () => {
+                const newFullName = "An automated generated user";
+                const newEmail = secretMap.get('new_userid');
+                const newPassword = secretMap.get('new_passwd');
+                return request(server)
+                    .post('/login/new-user')
+                    .send({
+                        fullname: newFullName,
+                        username: newEmail,
+                        password: newPassword,
+                        passwordconfirm: newPassword
+                    })
+                    .expect(302)
+                    .then((res) => {
+                        expect(res.location, '/login');
+                        expect(res.text).to.not.be.null;
+                        expect(res.text).to.not.be.undefined;
+                        expect(res.text).to.match(/.*confirm_msg=Account.*has.*been.*created.*successfully\..*/);
+    
+                        return db.getDatabaseRecords({ email: newEmail }, db.selectOneUserQuery).then((res) => {
+                            // Test the result in DB against the testing data
+                            expect(res).is.length(1);
+                            expect(res[0].id).to.exist;
+                            expect(newFullName).to.equal(res[0].name);
+                            expect(newEmail).to.equal(res[0].email);
+                            expect(res[0].hash).to.exist;
+                            newUserId = res[0].id;
+                        });
+                    })
+                    .catch((err) => {
+                        if (err) throw err;
+                    });
+                }
+            );
+
+            it('Register a new user with a wrong confirm password', () => {
+                const newFullName = "An automated generated user2";
+                const newEmail = secretMap.get('new_userid2');
+                const newPassword = secretMap.get('new_passwd');
+                const wrongPassword = secretMap.get('fail_passwd');
+                return request(server)
+                    .post('/login/new-user')
+                    .send({
+                        fullname: newFullName,
+                        username: newEmail,
+                        password: newPassword,
+                        passwordconfirm: wrongPassword
+                    })
+                    .expect(401)
+                    .then((res) => {
+                        expect(res.text).to.not.be.null;
+                        expect(res.text).to.not.be.undefined;
+                        htmlResponse = res.text;
+    
+                        // console.log parsed DOM cannot get a meaningful result for debug as it does not display the content.
+                        const parsedDom = new JSDOM(htmlResponse, {url: "http://localhost:3000/", contentType: "text/html"});
+                        const message = parsedDom.window.document.querySelector("li.error_msg");
+    
+                        // Test the result on screen against the testing data
+                        expect(message.textContent).to.equal("Password does not match.");
+                    })
+                    .catch((err) => {
+                        if (err) throw err;
+                    });
+                }
+            );
+
+            it('Register a new user with an invalid email address (username)', () => {
+                const newFullName = "An automated generated user3";
+                const newEmail = secretMap.get('new_userid3');
+                const newPassword = secretMap.get('new_passwd');
+                return request(server)
+                    .post('/login/new-user')
+                    .send({
+                        fullname: newFullName,
+                        username: newEmail,
+                        password: newPassword,
+                        passwordconfirm: newPassword
+                    })
+                    .expect(500)
+                    .then((res) => {
+                        expect(res.text).to.not.be.null;
+                        expect(res.text).to.not.be.undefined;
+                        htmlResponse = res.text;
+    
+                        // console.log parsed DOM cannot get a meaningful result for debug as it does not display the content.
+                        const parsedDom = new JSDOM(htmlResponse, {url: "http://localhost:3000/", contentType: "text/html"});
+                        const message = parsedDom.window.document.querySelector("li.error_msg");
+    
+                        // Test the result on screen against the testing data
+                        expect(message.textContent).to.equal("Error: It is not a valid email address.");
+                    })
+                    .catch((err) => {
+                        if (err) throw err;
+                    });
+                }
+            );
+
+            after('Clean up the new created user', () => {
+                db.deleteDatabaseRecord({ id: newUserId }, db.deleteUserQuery);
+            })
+        });
     });
     
     describe('Envelopes functionalities (/budget/envelopes)', function() {

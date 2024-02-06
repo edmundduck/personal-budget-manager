@@ -202,7 +202,6 @@ const createTransactionQuery = (input) => {
     };
 };
 
-// TODO
 const updateTransactionQuery = (input) => {
     if (! (input instanceof Object)) return null;
     return {
@@ -239,6 +238,15 @@ const createUserQuery = (input) => {
     };
 };
 
+const deleteUserQuery = (input) => {
+    if (! (input instanceof Object)) return null;
+    return {
+        // name: 'delete-user',
+        text: 'DELETE FROM app.usersauth WHERE id = $1 RETURNING id',
+        values: [input.id]
+    };
+};
+
 module.exports = { 
     getDatabaseRecords, 
     createUpdateDatabaseRecord, 
@@ -256,5 +264,6 @@ module.exports = {
     updateTransactionQuery,
     deleteOneTransactionQuery,
     selectOneUserQuery,
-    createUserQuery
+    createUserQuery,
+    deleteUserQuery
 };

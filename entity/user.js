@@ -9,6 +9,22 @@ class User extends dataobject {
     }
 
     isValid() {
+        const re = /.*@.*/;
+        if (this.name) {
+            if (typeof(this.name) != "string") {
+                this.setError(new Error('Name should be in string.', { cause: 'name' }));
+                return false;
+            }
+        }
+        if (this.email) {
+            if (!this.email.match(re)) {
+                this.setError(new Error('It is not a valid email address.', { cause: 'email' }));
+                return false;
+            }
+        } else  {
+            this.setError(new Error('Email address is mandatory.', { cause: 'email' }));
+            return false;
+        }
         return true;
     }
 

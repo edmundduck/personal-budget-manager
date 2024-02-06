@@ -87,21 +87,21 @@ authRouter.get('/', (req, res, next) => {
     const username = req.query.username ? decodeURIComponent(req.query.username) : null;
     const message = req.query.confirm_msg ? decodeURIComponent(req.query.confirm_msg) : null;
     const errorMessage = req.query.error_msg ? decodeURIComponent(req.query.error_msg) : null;
-    res.render('login', { data: {username: username}, confirm_msg: message, error_msg: errorMessage });
+    res.render(req.page, { data: {username: username}, confirm_msg: message, error_msg: errorMessage });
 });
 
 authRouter.post('/', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
-            return res.status(401).render('login', { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
+            return res.status(401).render(req.page, { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
         }
         if (!user) {
-            return res.status(401).render('login', { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
+            return res.status(401).render(req.page, { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
         }
 
         req.logIn(user, (err) => {
             if (err) {
-                return res.status(401).render('login', { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
+                return res.status(401).render(req.page, { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
             }
             return res.redirect('../budget');
         });
@@ -119,13 +119,14 @@ authRouter.get('/new-user', (req, res, next) => {
 });
 
 authRouter.post('/new-user', async (req, res, next) => {
+    req.page = 'register';
     const password = req.body.password;
     const passwordConfirm = req.body.passwordconfirm;
     const errorMsg = [];
 
     if (password != passwordConfirm) {
         errorMsg.push('Password does not match.');
-        res.status(401).render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
+        res.status(401).render(req.page, { data: { fullname: req.body.fullname, username: req.body.username }, error_msg: errorMsg });
         return;
     }
 
@@ -136,6 +137,11 @@ authRouter.post('/new-user', async (req, res, next) => {
         email: req.body.username,
         hash: hash
     });
+    // This allows to show a more concrete validation error message.
+    if (!newUserObj.isValid()) {
+        next(newUserObj.getError());
+        return;
+    }
     try{
         const userResult = await db.createUpdateDatabaseRecord({ obj:newUserObj }, db.createUserQuery, null);
         res.status(201).redirect(url.format({
@@ -146,7 +152,7 @@ authRouter.post('/new-user', async (req, res, next) => {
         }));
     } catch(err) {
         errorMsg.push(err.message);
-        res.status(500).render('register', { error_msg: errorMsg, username: req.body.username, fullname: req.body.fullname });
+        res.status(500).render(req.page, { data: { fullname: req.body.fullname, username: req.body.username }, error_msg: errorMsg });
     }
 });
 

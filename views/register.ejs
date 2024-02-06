@@ -15,11 +15,11 @@
                     </tr>
                     <tr>
                         <td class="cell_label">Full Name</td>
-                        <td><input type="text" name="fullname" placeholder="Your full name" value="<%= fullname %>" required/></td>
+                        <td><input type="text" name="fullname" placeholder="Your full name" value="<%= data ? data.fullname : null %>" required/></td>
                     </tr>
                     <tr>
                         <td class="cell_label">Email Address</td>
-                        <td><input type="text" name="username" placeholder="Email" value="<%= username %>" required/></td>
+                        <td><input type="text" name="username" placeholder="Email" value="<%= data ? data.username : null %>" required/></td>
                     </tr>
                     <tr>
                         <td class="cell_label">Password</td>
