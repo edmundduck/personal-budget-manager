@@ -30,10 +30,15 @@ const debugSession = (req, res, next) => {
     next()
 }
 
+authRouter.use((req, res, next) => {
+    req.page = 'login';
+    next();
+});
+
 passport.use(new LocalStrategy(async (username, password, done) => {
     let userResult = null;
     try{
-        userResult = await db.getDatabaseRecords(username, db.selectOneUserQuery);
+        userResult = await db.getDatabaseRecords({ email: username }, db.selectOneUserQuery);
     } catch(err) {
         // return done(err);
         return done(null, false, { error_msg: 'Internal connection error, please try again later.' });
@@ -52,15 +57,20 @@ passport.use(new LocalStrategy(async (username, password, done) => {
 }));
 
 passport.serializeUser((user, done) => {
-    done(null, user.email);
+    done(null, {
+        id: user.id,
+        name: user.name,
+        email: user.email
+    });
 });
   
-passport.deserializeUser(async (username, done) => {
-    let userResult = null;
-    try{
-        userResult = await db.getDatabaseRecords(username, db.selectOneUserQuery);
-    } catch(err) {
-        return done(err);
+passport.deserializeUser(async (user, done) => {
+    const userResult = await db.getDatabaseRecords({ email: user.email }, db.selectOneUserQuery);
+    // TODO test userResult = not truthy
+    if (!userResult) {
+        done(new Error('Error retrieving user record.'));
+    } else if (userResult instanceof Promise) {
+        userResult.catch((err) => done(err));
     }
 
     return done(null, userResult);
@@ -77,21 +87,21 @@ authRouter.get('/', (req, res, next) => {
     const username = req.query.username ? decodeURIComponent(req.query.username) : null;
     const message = req.query.confirm_msg ? decodeURIComponent(req.query.confirm_msg) : null;
     const errorMessage = req.query.error_msg ? decodeURIComponent(req.query.error_msg) : null;
-    res.render('login', { confirm_msg: message, error_msg: errorMessage, username: username });
+    res.render('login', { data: {username: username}, confirm_msg: message, error_msg: errorMessage });
 });
 
 authRouter.post('/', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
-            return res.status(401).render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
+            return res.status(401).render('login', { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
         }
         if (!user) {
-            return res.status(401).render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username });
+            return res.status(401).render('login', { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
         }
 
         req.logIn(user, (err) => {
             if (err) {
-                return res.status(401).render('login', { confirm_msg: null, error_msg: [info.error_msg], username: req.body.username  });
+                return res.status(401).render('login', { data: {username: req.body.username}, confirm_msg: null, error_msg: [info.error_msg] });
             }
             return res.redirect('../budget');
         });
@@ -127,7 +137,7 @@ authRouter.post('/new-user', async (req, res, next) => {
         hash: hash
     });
     try{
-        const userResult = await db.createUpdateDatabaseRecord(newUserObj, db.createUserQuery, null);
+        const userResult = await db.createUpdateDatabaseRecord({ obj:newUserObj }, db.createUserQuery, null);
         res.status(201).redirect(url.format({
             pathname: '/login',
             query: {

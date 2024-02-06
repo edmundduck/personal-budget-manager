@@ -30,6 +30,12 @@ baseRouter.use(
   );
 baseRouter.use(passport.initialize());
 baseRouter.use(passport.session());
+baseRouter.use((req, res, next) => {
+    // Simplify the session user access
+    if (req.session) res.locals.session = req.session;
+    if (req.session.passport) req.user = req.session.passport.user;
+    next();
+})
 
 baseRouter.get('/', (req, res, next) => {
     res.redirect('/login');
@@ -41,8 +47,8 @@ baseRouter.get('/budget', (req, res, next) => {
 });
 baseRouter.use('/budget/envelopes', envelopeRouter);
 baseRouter.use('/budget/transactions', transactionRouter);
-baseRouter.get('/logout', (req, res, next) => {
-    const username = req.user ? encodeURIComponent(req.user[0].email) : null;
+baseRouter.post('/logout', (req, res, next) => {
+    const username = req.user ? encodeURIComponent(req.user.email) : null;
     req.logOut((err) => {
         if (err) {
             return next(err);
@@ -55,6 +61,9 @@ baseRouter.get('/logout', (req, res, next) => {
         }));
     });
 });
+baseRouter.get('/*', (req, res, next) => {
+    res.render('general_fault', { error_msg: ['Look like the page you are looking for cannot be found.']});
+})
 baseRouter.use(errorMessageHandler, errorRenderHandler);
 
 module.exports = { 

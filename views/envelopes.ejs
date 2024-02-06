@@ -71,56 +71,56 @@
                             if (Array.isArray(data)) {
                                 data.forEach((envelope) => {
                     %>
-                                <tr>
-                                    <td class="result_id"><%= envelope.id %></td>
-                                    <td class="result_name"><%= envelope.name %></td>
-                                    <td class="result_budget"><%= envelope.budget %></td>
-                                    <td>
-                                        <% if (envelope.result && envelope.from) { %>
-                                        <p style="font-weight: bold;">&#x2713;</p>
-                                        <% } else if (envelope.result) { %>
-                                        <p></p>
-                                        <% } else { %>
-                                        <input type="radio" name="transfer_from" value="<%= envelope.id %>" />
-                                        <% } %>
-                                    </td>
-                                    <td>
-                                        <% if (envelope.result && envelope.to) { %>
-                                        <p style="font-weight: bold;">&#x2713;</p>
-                                        <% } else if (envelope.result) { %>
-                                        <p></p>
-                                        <% } else { %>
-                                        <input type="radio" name="transfer_to" value="<%= envelope.id %>" />
-                                        <% } %>
-                                    </td>
-                                </tr>
+                    <tr>
+                        <td class="result_id"><%= envelope.id %></td>
+                        <td class="result_name"><%= envelope.name %></td>
+                        <td class="result_budget"><%= envelope.budget %></td>
+                        <td>
+                            <% if (envelope.result && envelope.from) { %>
+                            <p style="font-weight: bold;">&#x2713;</p>
+                            <% } else if (envelope.result) { %>
+                            <p></p>
+                            <% } else { %>
+                            <input type="radio" name="transfer_from" value="<%= envelope.id %>" />
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (envelope.result && envelope.to) { %>
+                            <p style="font-weight: bold;">&#x2713;</p>
+                            <% } else if (envelope.result) { %>
+                            <p></p>
+                            <% } else { %>
+                            <input type="radio" name="transfer_to" value="<%= envelope.id %>" />
+                            <% } %>
+                        </td>
+                    </tr>
                     <%
                                 });
                             } else {
                     %>
-                                <tr>
-                                    <td class="result_id"><%= data.id %></td>
-                                    <td class="result_name"><%= data.name %></td>
-                                    <td class="result_budget"><%= data.budget %></td>
-                                    <td>
-                                        <% if (data.result && data.from) { %>
-                                        <p style="font-weight: bold;">&#x2713;</p>
-                                        <% } else if (data.result) { %>
-                                        <p></p>
-                                        <% } else { %>
-                                        <input type="radio" name="transfer_from" value="<%= data.id %>" />
-                                        <% } %>
-                                    </td>
-                                    <td>
-                                        <% if (data.result && data.to) { %>
-                                        <p style="font-weight: bold;">&#x2713;</p>
-                                        <% } else if (data.result) { %>
-                                        <p></p>
-                                        <% } else { %>
-                                        <input type="radio" name="transfer_to" value="<%= data.id %>" />
-                                        <% } %>
-                                    </td>
-                                </tr>
+                    <tr>
+                        <td class="result_id"><%= data.id %></td>
+                        <td class="result_name"><%= data.name %></td>
+                        <td class="result_budget"><%= data.budget %></td>
+                        <td>
+                            <% if (data.result && data.from) { %>
+                            <p style="font-weight: bold;">&#x2713;</p>
+                            <% } else if (data.result) { %>
+                            <p></p>
+                            <% } else { %>
+                            <input type="radio" name="transfer_from" value="<%= data.id %>" />
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (data.result && data.to) { %>
+                            <p style="font-weight: bold;">&#x2713;</p>
+                            <% } else if (data.result) { %>
+                            <p></p>
+                            <% } else { %>
+                            <input type="radio" name="transfer_to" value="<%= data.id %>" />
+                            <% } %>
+                        </td>
+                    </tr>
                     <%
                             };
                         };

@@ -23,18 +23,24 @@ describe('Unit test', function() {
     });
 
     function loginUser(auth) {
-        return function(done) {
-            request(server)
+        // return function(done) {
+        return function() {
+            return request(server)
                 .post('/login')
                 .send({
                     username: secretMap.get('success_userid'),
                     password: secretMap.get('success_passwd')
                 })
-                .end((err, res) => {
-                    if (err) return done(err);
+                .expect(302)
+                .then((res) => {
                     expect(res.headers).to.have.property('set-cookie');
                     auth.cookie = res.headers['set-cookie'].pop().split(';')[0];
-                    done();
+                    return db.getDatabaseRecords({ email: secretMap.get('success_userid') }, db.selectOneUserQuery).then((res) => {
+                        auth.user = res[0];
+                    });
+                })
+                .catch((err) => {
+                    if (err) throw err;
                 });
         }
     };
@@ -81,7 +87,7 @@ describe('Unit test', function() {
                     
             it('Log out', function() {
                 return request(server)
-                    .get('/logout')
+                    .post('/logout')
                     .set('Cookie', auth.cookie)
                     .expect(302)
                     .expect((res) => {
@@ -110,7 +116,7 @@ describe('Unit test', function() {
                         expect(res.text).to.not.be.undefined;
                         htmlResponse = res.text;
     
-                        return db.getDatabaseRecords(null, db.selectAllEnvelopesQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user }, db.selectAllEnvelopesQuery).then((res) => {
                             // console.log parsed DOM cannot get a meaningful result for debug as it does not display the content.
                             const parsedDom = new JSDOM(htmlResponse, {url: "http://localhost:3000/", contentType: "text/html"});
                             const idList = parsedDom.window.document.querySelectorAll("td.result_id");
@@ -157,7 +163,7 @@ describe('Unit test', function() {
                         expect(res.text).to.not.be.undefined;
                         htmlResponse = res.text;
     
-                        return db.getDatabaseRecords(id, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: id }, db.selectOneEnvelopeQuery).then((res) => {
                             // console.log parsed DOM cannot get a meaningful result for debug as it does not display the content.
                             const parsedDom = new JSDOM(htmlResponse, {url: "http://localhost:3000/", contentType: "text/html"});
                             const idList = parsedDom.window.document.querySelectorAll("td.result_id");
@@ -238,7 +244,7 @@ describe('Unit test', function() {
                         expect(parseFloat(budgetList[0].textContent)).to.equal(testbudget);
     
                         testId = parseInt(idList[0].textContent);
-                        return db.getDatabaseRecords(testId, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
@@ -284,7 +290,7 @@ describe('Unit test', function() {
                         expect(parseFloat(budgetList[0].textContent)).to.equal(testbudget);
     
                         testId2 = parseInt(idList[0].textContent);
-                        return db.getDatabaseRecords(testId2, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testId2 }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId2).to.equal(res[0].id);
@@ -399,7 +405,7 @@ describe('Unit test', function() {
                         expect(nameList[0].textContent).to.equal(testname);
                         expect(parseFloat(budgetList[0].textContent)).to.equal(testbudget);
     
-                        return db.getDatabaseRecords(testId, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
@@ -439,7 +445,7 @@ describe('Unit test', function() {
                         expect(parseInt(idList[0].textContent)).to.equal(testId);
                         expect(parseFloat(budgetList[0].textContent)).to.equal(testbudget);
     
-                        return db.getDatabaseRecords(testId, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
@@ -546,13 +552,13 @@ describe('Unit test', function() {
             let targetBudget;
         
             before('Get the budget from the source envelope', () => {
-                db.getDatabaseRecords(testId, db.selectOneEnvelopeQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneEnvelopeQuery).then((res) => {
                     sourceBudget = res[0].budget;
                 });
             });
     
             before('Get the budget from the target envelope', () => {
-                db.getDatabaseRecords(testId2, db.selectOneEnvelopeQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testId2 }, db.selectOneEnvelopeQuery).then((res) => {
                     targetBudget = res[0].budget;
                 });
             });
@@ -590,13 +596,13 @@ describe('Unit test', function() {
                         expect(parseFloat(budgetList[0].textContent)).to.equal(sourceBudget - testbudget);
                         expect(parseFloat(budgetList[1].textContent)).to.equal(targetBudget + testbudget);
     
-                        return Promise.all([db.getDatabaseRecords(testId, db.selectOneEnvelopeQuery).then((res) => {
+                        return Promise.all([db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
                             expect(sourceBudget - testbudget).to.equal(res[0].budget);
                             return res;
-                        }), db.getDatabaseRecords(testId2, db.selectOneEnvelopeQuery).then((res) => {
+                        }), db.getDatabaseRecords({ user: auth.user, id: testId2 }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId2).to.equal(res[0].id);
@@ -611,7 +617,7 @@ describe('Unit test', function() {
     
             after('Clean up the 2nd created envelope', () => {
                 // Remove the 2nd unit test record from DB as it will not be removed in delete route
-                db.deleteDatabaseRecord(testId2, db.deleteOneEnvelopeQuery);
+                db.deleteDatabaseRecord({ user: auth.user, id: testId2 }, db.deleteOneEnvelopeQuery);
             })
     
             it('Post a new transfer without all necessary properties between two envelopes', function() {
@@ -664,7 +670,7 @@ describe('Unit test', function() {
                         expect(message.textContent).to.equal("Envelope ID (" + testId + ") has been deleted.");
                         expect(parseInt(idList[0].textContent)).to.equal(testId);
     
-                        return db.getDatabaseRecords(testId, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).to.be.null;
                         });
@@ -728,7 +734,7 @@ describe('Unit test', function() {
                         expect(res.text).to.not.be.undefined;
                         htmlResponse = res.text;
     
-                        return db.getDatabaseRecords(null, db.selectAllTransactionsQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user }, db.selectAllTransactionsQuery).then((res) => {
                             // console.log parsed DOM cannot get a meaningful result for debug as it does not display the content.
                             const parsedDom = new JSDOM(htmlResponse, {url: "http://localhost:3000/", contentType: "text/html"});
                             const idList = parsedDom.window.document.querySelectorAll("td.result_id");
@@ -763,7 +769,7 @@ describe('Unit test', function() {
                         expect(res.text).to.not.be.undefined;
                         htmlResponse = res.text;
     
-                        return db.getDatabaseRecords(id, db.selectOneTransactionQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: id }, db.selectOneTransactionQuery).then((res) => {
                             // console.log parsed DOM cannot get a meaningful result for debug as it does not display the content.
                             const parsedDom = new JSDOM(htmlResponse, {url: "http://localhost:3000/", contentType: "text/html"});
                             const idList = parsedDom.window.document.querySelectorAll("td.result_id");
@@ -823,7 +829,7 @@ describe('Unit test', function() {
             const testEnvelopeId = 1;
         
             beforeEach('Get the budget from the envelope', () => {
-                db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                     envelopeBudget = res[0].budget;
                 });
             });
@@ -870,7 +876,7 @@ describe('Unit test', function() {
                         expect(parseInt(envelopeIdList[0].textContent)).to.equal(testEnvelopeId);
     
                         testId = parseInt(idList[0].textContent);
-                        return Promise.all([db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                        return Promise.all([db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                             // Test the transaction result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
@@ -878,7 +884,7 @@ describe('Unit test', function() {
                             expect(testAmount).to.equal(res[0].amount);
                             expect(testRecipient).to.equal(res[0].recipient);
                             expect(testEnvelopeId).to.equal(res[0].envelopeId);
-                        }), db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        }), db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the envelope budget in DB against the testing data
                             expect(res).is.length(1);
                             expect(envelopeBudget - testAmount).to.equal(res[0].budget);
@@ -959,7 +965,7 @@ describe('Unit test', function() {
                         expect(envelopeIdList).is.length(0);
                         expect(message.textContent).to.equal("Error: Date format is not valid.");
 
-                        return db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the envelope budget in DB remain the same before and after this test
                             expect(res).is.length(1);
                             expect(envelopeBudget).to.equal(res[0].budget);
@@ -1006,7 +1012,7 @@ describe('Unit test', function() {
                         expect(envelopeIdList).is.length(0);
                         expect(message.textContent).to.equal("Error: Amount should be either zero or positive.");
                     
-                        return db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        return db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the envelope budget in DB remain the same before and after this test
                             expect(res).is.length(1);
                             expect(envelopeBudget).to.equal(res[0].budget);
@@ -1024,7 +1030,7 @@ describe('Unit test', function() {
             const testEnvelopeId = 1;
         
             beforeEach('Get the budget from the envelope', () => {
-                db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                     envelopeBudget = res[0].budget;
                 });
             });
@@ -1032,7 +1038,7 @@ describe('Unit test', function() {
             beforeEach('Get the original amount from the transaction', () => {
                 expect(testId).to.be.not.NaN;
     
-                db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                     originalAmount = res[0].amount;
                 });
             });
@@ -1078,7 +1084,7 @@ describe('Unit test', function() {
                         expect(recipientList[0].textContent).to.equal(testRecipient);
                         expect(parseInt(envelopeIdList[0].textContent)).to.equal(testEnvelopeId);
     
-                        return Promise.all([db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                        return Promise.all([db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
@@ -1086,7 +1092,7 @@ describe('Unit test', function() {
                             expect(testAmount).to.equal(res[0].amount);
                             expect(testRecipient).to.equal(res[0].recipient);
                             expect(testEnvelopeId).to.equal(res[0].envelopeId);
-                        }), db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        }), db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(envelopeBudget - testAmount + originalAmount).to.equal(res[0].budget);
@@ -1124,12 +1130,12 @@ describe('Unit test', function() {
                         expect(parseInt(idList[0].textContent)).to.equal(testId);
                         expect(parseFloat(amountList[0].textContent)).to.equal(testAmount);
     
-                        return Promise.all([db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                        return Promise.all([db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
                             expect(testAmount).to.equal(res[0].amount);
-                        }), db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        }), db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(envelopeBudget - testAmount + originalAmount).to.equal(res[0].budget);
@@ -1163,12 +1169,12 @@ describe('Unit test', function() {
                         expect(parseInt(idList[0].textContent)).to.equal(testId);
                         expect(parseFloat(amountList[0].textContent)).to.equal(originalAmount);
     
-                        return Promise.all([db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                        return Promise.all([db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(testId).to.equal(res[0].id);
                             expect(originalAmount).to.equal(res[0].amount);
-                        }), db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        }), db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(envelopeBudget).to.equal(res[0].budget);
@@ -1256,7 +1262,7 @@ describe('Unit test', function() {
             const testEnvelopeId = 1;
         
             beforeEach('Get the budget from the envelope', () => {
-                db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                     envelopeBudget = res[0].budget;
                 });
             });
@@ -1264,7 +1270,7 @@ describe('Unit test', function() {
             beforeEach('Get the original amount from the transaction', () => {
                 expect(testId).to.be.not.NaN;
     
-                db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                     originalAmount = res[0].amount;
                 });
             });
@@ -1289,10 +1295,10 @@ describe('Unit test', function() {
                         expect(message.textContent).to.equal("Transaction ID (" + testId + ") has been deleted.");
                         expect(parseInt(idList[0].textContent)).to.equal(testId);
     
-                        return Promise.all([db.getDatabaseRecords(testId, db.selectOneTransactionQuery).then((res) => {
+                        return Promise.all([db.getDatabaseRecords({ user: auth.user, id: testId }, db.selectOneTransactionQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).to.be.null;
-                        }), db.getDatabaseRecords(testEnvelopeId, db.selectOneEnvelopeQuery).then((res) => {
+                        }), db.getDatabaseRecords({ user: auth.user, id: testEnvelopeId }, db.selectOneEnvelopeQuery).then((res) => {
                             // Test the result in DB against the testing data
                             expect(res).is.length(1);
                             expect(envelopeBudget + originalAmount).to.equal(res[0].budget);

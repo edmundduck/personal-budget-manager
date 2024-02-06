@@ -12,7 +12,6 @@ const transactionRouter = express.Router();
 // Transaction API
 transactionRouter.use(['/', '/:transactionId]'], (req, res, next) => {
     req.page = 'transactions';
-    res.locals.session = req.session;
     next();
 });
 
@@ -31,13 +30,13 @@ transactionRouter.use('/:transactionId', (req, res, next) => {
 });
 
 transactionRouter.get('/', checkAuthenticated, (req, res, next) => {
-    req.result = db.getDatabaseRecords(null, db.selectAllTransactionsQuery);
+    req.result = db.getDatabaseRecords({ user: req.user }, db.selectAllTransactionsQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
 transactionRouter.get('/:transactionId', checkAuthenticated, (req, res, next) => {
-    req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
+    req.result = db.getDatabaseRecords({ user: req.user, id: req.transactionId }, db.selectOneTransactionQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
@@ -45,7 +44,7 @@ transactionRouter.get('/:transactionId', checkAuthenticated, (req, res, next) =>
 transactionRouter.post('/', checkAuthenticated, (req, res, next) => {
     // Check if the envelope balance is larger than the transaction amount
     if (req.body.envelopeId) {
-        req.result = db.getDatabaseRecords(req.body.envelopeId, db.selectOneEnvelopeQuery);
+        req.result = db.getDatabaseRecords({ user: req.user, id: req.body.envelopeId }, db.selectOneEnvelopeQuery);
     } else {
         next(new Error('Missing envelope ID.'));
     }
@@ -64,8 +63,8 @@ transactionRouter.post('/', checkAuthenticated, (req, res, next) => {
     }
     if (envelopeObj.budget >= transactionObj.amount) {
         envelopeObj.setBudget(envelopeObj.getBudget() - transactionObj.getAmount());
-        req.resultOne = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
-        req.resultTwo = db.createUpdateDatabaseRecord(transactionObj, db.createTransactionQuery, db.selectLastTransactionIdQuery);
+        req.resultOne = db.createUpdateDatabaseRecord({ user: req.user, obj: envelopeObj }, db.updateEnvelopeQuery, null);
+        req.resultTwo = db.createUpdateDatabaseRecord({ user: req.user, obj: transactionObj }, db.createTransactionQuery, db.selectLastTransactionIdQuery);
         next();
     } else {
         next(new Error('Not enough budget from the envelope to fulfill this transaction.'));
@@ -98,12 +97,12 @@ transactionRouter.put('/', checkAuthenticated, (req, res, next) => {
 }, responseHandler);
 
 transactionRouter.put('/:transactionId', checkAuthenticated, (req, res, next) => {
-    req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
+    req.result = db.getDatabaseRecords({ user: req.user, id: req.transactionId }, db.selectOneTransactionQuery);
     next();
 }, promiseLoader, (req, res, next) => {
     const transactionObj = new transaction(req.result);
     req.resultTwo = req.result;
-    req.resultOne = db.getDatabaseRecords(transactionObj.getEnvelopeId(), db.selectOneEnvelopeQuery);
+    req.resultOne = db.getDatabaseRecords({ user: req.user, id: transactionObj.getEnvelopeId() }, db.selectOneEnvelopeQuery);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     const envelopeObj = new envelope(req.resultOne);
@@ -123,8 +122,8 @@ transactionRouter.put('/:transactionId', checkAuthenticated, (req, res, next) =>
     }
     if (envelopeObj.budget >= diffAmount) {
         envelopeObj.setBudget(envelopeObj.getBudget() - diffAmount);
-        req.resultOne = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
-        req.resultTwo = db.createUpdateDatabaseRecord(transactionObj, db.updateTransactionQuery, null);
+        req.resultOne = db.createUpdateDatabaseRecord({ user: req.user, obj: envelopeObj }, db.updateEnvelopeQuery, null);
+        req.resultTwo = db.createUpdateDatabaseRecord({ user: req.user, obj: transactionObj }, db.updateTransactionQuery, null);
         next();
     } else {
         next(new Error('Not enough budget from the envelope to fulfill this transaction.'));
@@ -157,19 +156,19 @@ transactionRouter.delete('/', checkAuthenticated, (req, res, next) => {
 }, responseHandler);
 
 transactionRouter.delete('/:transactionId', checkAuthenticated, (req, res, next) => {
-    req.result = db.getDatabaseRecords(req.transactionId, db.selectOneTransactionQuery);
+    req.result = db.getDatabaseRecords({ user: req.user, id: req.transactionId }, db.selectOneTransactionQuery);
     next();
 }, promiseLoader, (req, res, next) => {
     const transactionObj = new transaction(req.result);
     req.resultOne = req.result;
-    req.resultTwo = db.getDatabaseRecords(transactionObj.getEnvelopeId(), db.selectOneEnvelopeQuery);
+    req.resultTwo = db.getDatabaseRecords({ user: req.user, id: transactionObj.getEnvelopeId() }, db.selectOneEnvelopeQuery);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     const transactionObj = new transaction(req.resultOne);
     const envelopeObj = new envelope(req.resultTwo);
     envelopeObj.setBudget(envelopeObj.getBudget() + transactionObj.getAmount());
-    req.resultOne = db.deleteDatabaseRecord(req.transactionId, db.deleteOneTransactionQuery);
-    req.resultTwo = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
+    req.resultOne = db.deleteDatabaseRecord({ user: req.user, id: req.transactionId }, db.deleteOneTransactionQuery);
+    req.resultTwo = db.createUpdateDatabaseRecord({ user: req.user, obj: envelopeObj }, db.updateEnvelopeQuery, null);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     if (req.resultOne && req.resultTwo) {

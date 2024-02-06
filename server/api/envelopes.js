@@ -11,7 +11,6 @@ const envelopeRouter = express.Router();
 // Envelope API
 envelopeRouter.use((req, res, next) => {
     req.page = 'envelopes';
-    res.locals.session = req.session;
     next();
 });
 
@@ -34,16 +33,16 @@ envelopeRouter.use('/transfer/:from/:to', (req, res, next) => {
 });
 
 envelopeRouter.post('/transfer/:from/:to', checkAuthenticated, (req, res, next) => {
-    req.resultOne = db.getDatabaseRecords(req.fromId, db.selectOneEnvelopeQuery);
-    req.resultTwo = db.getDatabaseRecords(req.toId, db.selectOneEnvelopeQuery);
+    req.resultOne = db.getDatabaseRecords({ user: req.user, id: req.fromId }, db.selectOneEnvelopeQuery);
+    req.resultTwo = db.getDatabaseRecords({ user: req.user, id: req.toId }, db.selectOneEnvelopeQuery);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     const fromEnvelope = new envelope(req.resultOne);
     const toEnvelope = new envelope(req.resultTwo);
     fromEnvelope.budget = parseFloat(fromEnvelope.budget) - parseFloat(req.budget);
     toEnvelope.budget = parseFloat(toEnvelope.budget) + parseFloat(req.budget);
-    req.resultOne = db.createUpdateDatabaseRecord(fromEnvelope, db.updateEnvelopeQuery, null);
-    req.resultTwo = db.createUpdateDatabaseRecord(toEnvelope, db.updateEnvelopeQuery, null);
+    req.resultOne = db.createUpdateDatabaseRecord({ user: req.user, obj: fromEnvelope }, db.updateEnvelopeQuery, null);
+    req.resultTwo = db.createUpdateDatabaseRecord({ user: req.user, obj: toEnvelope }, db.updateEnvelopeQuery, null);
     next();
 }, twoPromisesLoader, (req, res, next) => {
     if (req.resultOne && req.resultTwo) {
@@ -97,13 +96,13 @@ envelopeRouter.use('/:envelopeId', (req, res, next) => {
 });
 
 envelopeRouter.get('/', checkAuthenticated, (req, res, next) => {
-    req.result = db.getDatabaseRecords(null, db.selectAllEnvelopesQuery);
+    req.result = db.getDatabaseRecords({ user: req.user }, db.selectAllEnvelopesQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
 
 envelopeRouter.get('/:envelopeId', checkAuthenticated, (req, res, next) => {
-    req.result = db.getDatabaseRecords(req.envelopeId, db.selectOneEnvelopeQuery);
+    req.result = db.getDatabaseRecords({ user: req.user, id: req.envelopeId }, db.selectOneEnvelopeQuery);
     req.code_success = 200;
     next();
 }, responseHandler);
@@ -117,7 +116,7 @@ envelopeRouter.post('/', checkAuthenticated, (req, res, next) => {
         next(envelopeObj.getError());
         return;
     }
-    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.createEnvelopeQuery, db.selectLastEnvelopeIdQuery);
+    req.result = db.createUpdateDatabaseRecord({ user: req.user, obj: envelopeObj }, db.createEnvelopeQuery, db.selectLastEnvelopeIdQuery);
     req.code_success = 201;
     req.message = [''.concat("New envelope \"", req.body.name, "\" has been created.")];
     next();
@@ -139,7 +138,7 @@ envelopeRouter.put('/:envelopeId', checkAuthenticated, (req, res, next) => {
         next(envelopeObj.getError());
         return;
     }
-    req.result = db.createUpdateDatabaseRecord(envelopeObj, db.updateEnvelopeQuery, null);
+    req.result = db.createUpdateDatabaseRecord({ user: req.user, obj: envelopeObj }, db.updateEnvelopeQuery, null);
     req.code_success = 201;
     req.message = [''.concat("Envelope ID (", req.envelopeId, ") has been updated.")];
     next();
@@ -152,7 +151,7 @@ envelopeRouter.delete('/', checkAuthenticated, (req, res, next) => {
 }, responseHandler);
 
 envelopeRouter.delete('/:envelopeId', checkAuthenticated, (req, res, next) => {
-    req.result = db.deleteDatabaseRecord(req.envelopeId, db.deleteOneEnvelopeQuery);
+    req.result = db.deleteDatabaseRecord({ user: req.user, id: req.envelopeId }, db.deleteOneEnvelopeQuery);
     req.code_success = 201;
     req.message = [''.concat("Envelope ID (", req.envelopeId, ") has been deleted.")];
     next();

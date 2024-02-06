@@ -37,12 +37,10 @@ async function dbConnect() {
     }
 }
 
-const getDatabaseRecords = async (id, sqlFunc) => {
+const getDatabaseRecords = async (input, sqlFunc) => {
     try {
-        if (!connection) {
-            await dbConnect();
-        }
-        const data = await connection.query(sqlFunc(id));
+        if (!connection) await dbConnect();
+        const data = await connection.query(sqlFunc(input));
         if (data.rows.length == 1) {
             return [data.rows[0]];
         } else if (data.rows.length > 1) {
@@ -55,24 +53,21 @@ const getDatabaseRecords = async (id, sqlFunc) => {
     }
 }
 
-const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
-    if (!obj || !(obj instanceof dataobject)) {
-        throw new Error('Error: Not valid value or data type (Data Object) for creating or updating record in database.');
-    }
+const createUpdateDatabaseRecord = async (input, sqlFunc, findIdFunc) => {
+    const obj = input.obj;
+    if (!obj || !(obj instanceof dataobject)) throw new Error('Error: Not valid value or data type (Data Object) for creating or updating record in database.');
     if (obj.isValid()) {
         try {
-            if (!connection) {
-                dbConnect();
-            }
+            if (!connection) await dbConnect();
             if (!obj.getId() && findIdFunc) {
-                const newId = await getDatabaseRecords(null, findIdFunc);
+                const newId = await getDatabaseRecords(input, findIdFunc);
                 if (newId && newId.length > 0) {
                     obj.setId(newId[0].id + 1);
                 } else {
                     obj.setId(1);
                 }
             }
-            const data = await connection.query(sqlFunc(obj));
+            const data = await connection.query(sqlFunc(input));
             await connection.query('COMMIT');
             // return [obj.getObject()]
             return data.rows[0] ? [data.rows[0]] : null;
@@ -86,12 +81,10 @@ const createUpdateDatabaseRecord = async (obj, sqlFunc, findIdFunc) => {
     }
 }
 
-const deleteDatabaseRecord = async (id, sqlFunc) => {
+const deleteDatabaseRecord = async (input, sqlFunc) => {
     try {
-        if (!connection) {
-            dbConnect();
-        }
-        const data = await connection.query(sqlFunc(id));
+        if (!connection) await dbConnect();
+        const data = await connection.query(sqlFunc(input));
         await connection.query('COMMIT');
         return data.rows[0] ? [data.rows[0]] : null;
     } catch (err) {
@@ -101,10 +94,11 @@ const deleteDatabaseRecord = async (id, sqlFunc) => {
     }
 }
 
-const constructUpdateQueryById = (obj, table) => {
+const constructUpdateQueryById = (input, table) => {
+    const obj = input.obj;
     let sqlString = 'UPDATE ' + table + ' SET  ';
     let returnString = 'id';
-    let counter = 2;
+    let counter = 3;
     Object.entries(obj).forEach(([k, v]) => {
         if (k.toLowerCase() != 'id' && obj.getDataKeys().includes(k) && v) {
             // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
@@ -113,116 +107,135 @@ const constructUpdateQueryById = (obj, table) => {
             counter++;
         }
     });
-    sqlString = sqlString.replace(/,\s*$/, ' ') + ' WHERE id = $1 RETURNING ' + returnString;
+    sqlString = sqlString.replace(/,\s*$/, ' ') + ' WHERE userid = $1 AND id = $2 RETURNING ' + returnString;
     return sqlString;
 };
 
-const selectAllEnvelopesQuery = () => {
+const selectAllEnvelopesQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-all-envelopes',
-        text: 'SELECT * FROM app.envelopes ORDER BY id'
+        text: 'SELECT * FROM app.envelopes WHERE userid = $1 ORDER BY id',
+        values: [input.user.id]
     };
 };
 
-const selectOneEnvelopeQuery = (id) => {
+const selectOneEnvelopeQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-one-envelope-by-id',
-        text: 'SELECT * FROM app.envelopes WHERE id = $1',
-        values: [id]
+        text: 'SELECT * FROM app.envelopes WHERE userid = $1 AND id = $2',
+        values: [input.user.id, input.id]
     };
 };
 
-const selectLastEnvelopeIdQuery = () => {
+const selectLastEnvelopeIdQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-last-envelope-id',
-        text: 'SELECT id FROM app.envelopes ORDER BY id DESC LIMIT 1',
+        text: 'SELECT id FROM app.envelopes WHERE userid = $1 ORDER BY id DESC LIMIT 1',
+        values: [input.user.id]
     };
 };
 
-const createEnvelopeQuery = (obj) => {
+const createEnvelopeQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'create-envelope',
-        text: 'INSERT INTO app.envelopes (id, name, budget) VALUES ($1, $2, $3) RETURNING id, name, budget',
-        values: [obj.getId(), obj.getName(), obj.getBudget()]
+        text: 'INSERT INTO app.envelopes (userid, id, name, budget) VALUES ($1, $2, $3, $4) RETURNING id, name, budget',
+        values: [input.user.id, input.obj.getId(), input.obj.getName(), input.obj.getBudget()]
     };
 };
 
-const updateEnvelopeQuery = (obj) => {
+const updateEnvelopeQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'update-envelope',
-        text: constructUpdateQueryById(obj, 'app.envelopes'), 
-        values: obj.getDataValues().filter(v => v)
+        text: constructUpdateQueryById(input, 'app.envelopes'), 
+        values: [input.user.id].concat(input.obj.getDataValues().filter(v => v))
     };
 };
 
-const deleteOneEnvelopeQuery = (id) => {
+const deleteOneEnvelopeQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'delete-one-envelope-by-id',
-        text: 'DELETE FROM app.envelopes WHERE id = $1 RETURNING id',
-        values: [id]
+        text: 'DELETE FROM app.envelopes WHERE userid = $1 AND id = $2 RETURNING id',
+        values: [input.user.id, input.id]
     };
 };
 
-const selectAllTransactionsQuery = () => {
+const selectAllTransactionsQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-all-transactions',
-        text: 'SELECT * FROM app.transactions ORDER BY id'
+        text: 'SELECT * FROM app.transactions WHERE userid = $1 ORDER BY id',
+        values: [input.user.id]
     };
 };
 
-const selectOneTransactionQuery = (id) => {
+const selectOneTransactionQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-one-transaction-by-id',
-        text: 'SELECT * FROM app.transactions WHERE id = $1',
-        values: [id]
+        text: 'SELECT * FROM app.transactions WHERE userid = $1 AND id = $2',
+        values: [input.user.id, input.id]
     };
 };
 
-const selectLastTransactionIdQuery = () => {
+const selectLastTransactionIdQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-last-transaction-id',
-        text: 'SELECT id FROM app.transactions ORDER BY id DESC LIMIT 1',
+        text: 'SELECT id FROM app.transactions WHERE userid = $1 ORDER BY id DESC LIMIT 1',
+        values: [input.user.id]
     };
 };
 
-const createTransactionQuery = (obj) => {
+const createTransactionQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     // Column envelopeId has to be double quoted otherwise the captical letter in between won't be preserved!!
     return {
         // name: 'create-transaction',
-        text: 'INSERT INTO app.transactions (id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5) RETURNING id, date, amount, recipient, "envelopeId"',
-        values: [obj.getId(), obj.getDate(), obj.getAmount(), obj.getRecipient(), obj.getEnvelopeId()]
+        text: 'INSERT INTO app.transactions (userid, id, date, amount, recipient, "envelopeId") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, date, amount, recipient, "envelopeId"',
+        values: [input.user.id, input.obj.getId(), input.obj.getDate(), input.obj.getAmount(), input.obj.getRecipient(), input.obj.getEnvelopeId()]
     };
 };
 
-const updateTransactionQuery = (obj) => {
+// TODO
+const updateTransactionQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'update-transaction',
-        text: constructUpdateQueryById(obj, 'app.transactions'), 
-        values: obj.getDataValues().filter(v => v)
+        text: constructUpdateQueryById(input, 'app.transactions'), 
+        values: [input.user.id].concat(input.obj.getDataValues().filter(v => v))
     };
 };
 
-const deleteOneTransactionQuery = (id) => {
+const deleteOneTransactionQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'delete-one-transaction-by-id',
-        text: 'DELETE FROM app.transactions WHERE id = $1 RETURNING id',
-        values: [id]
+        text: 'DELETE FROM app.transactions WHERE userid = $1 AND id = $2 RETURNING id',
+        values: [input.user.id, input.id]
     };
 };
 
-const selectOneUserQuery = (email) => {
+const selectOneUserQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'select-one-user-by-email',
         text: 'SELECT * FROM app.usersauth WHERE email = $1',
-        values: [email]
+        values: [input.email]
     };
 };
 
-const createUserQuery = (obj) => {
+const createUserQuery = (input) => {
+    if (! (input instanceof Object)) return null;
     return {
         // name: 'create-user',
         text: 'INSERT INTO app.usersauth (name, email, hash) VALUES ($1, $2, $3) RETURNING email',
-        values: [obj.getName(), obj.getEmail(), obj.getPasswordHash()]
+        values: [input.obj.getName(), input.obj.getEmail(), input.obj.getPasswordHash()]
     };
 };
 

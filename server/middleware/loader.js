@@ -55,7 +55,7 @@ const errorMessageHandler = (err, req, res, next) => {
 
 // Validation error goes here
 const errorRenderHandler = (err, req, res, next) => {
-    const page = req.page;
+    const page = req.page || 'general_fault';
     const statusCode = err.status || 500;
     let message;
     if (err instanceof Error) {

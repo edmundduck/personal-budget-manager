@@ -1,9 +1,16 @@
 <nav class="menu_navbar">
-    <button class="profile_icon menu_item">Logged on as <%= session.passport.user %></button>
+    <button class="profile_icon menu_item">Logged on as <%= session.passport.user.name ? session.passport.user.name : session.passport.user.email %></button>
     <a href="/budget" class="menu_item">Home</a>
     <a href="/budget/envelopes" class="menu_item">Envelopes</a>
     <a href="/budget/transactions" class="menu_item">Transactions</a>
-    <a href="/logout" class="menu_item">Log Out</a>
+    <a href="" onclick="logout();" class="menu_item">Log Out</a>
+    <form id="logout_form" action="/logout" method="POST"></form>
 </nav>
 <nav class="page_navbar">
 </nav>
+<script>
+    function logout() {
+        event.preventDefault();
+        document.getElementById("logout_form").submit();
+    }
+</script>
